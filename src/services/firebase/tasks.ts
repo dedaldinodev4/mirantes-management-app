@@ -17,7 +17,7 @@ import { COLLECTIONS } from '@/constants'
 import type { Task, CreateTaskInput, UpdateTaskInput, TaskStatus, TaskFilters } from '@/types'
 import { isOverdue } from '@/utils'
 
-// ── Create Task ───────────────────────────────────────────────────────────────
+//* Create Task *//
 export async function createTask(
   input: CreateTaskInput,
   reporterId: string,
@@ -52,7 +52,7 @@ export async function createTask(
   return ref.id
 }
 
-// ── Get Project Tasks ─────────────────────────────────────────────────────────
+//* Get Project Tasks *//
 export async function getProjectTasks(
   projectId: string,
   filters?: TaskFilters,
@@ -95,7 +95,7 @@ export async function getProjectTasks(
   return tasks
 }
 
-// ── Update Task ───────────────────────────────────────────────────────────────
+//* Update Task *//
 export async function updateTask(
   taskId: string,
   input: Partial<UpdateTaskInput>,
@@ -114,7 +114,7 @@ export async function updateTask(
   await updateDoc(doc(db, COLLECTIONS.tasks, taskId), updates)
 }
 
-// ── Move Task (Kanban drag & drop) ────────────────────────────────────────────
+//* Move Task (Kanban drag & drop)  *//
 export async function moveTask(
   taskId: string,
   newStatus: TaskStatus,
@@ -133,7 +133,7 @@ export async function moveTask(
   await updateDoc(doc(db, COLLECTIONS.tasks, taskId), updates)
 }
 
-// ── Batch Reorder ─────────────────────────────────────────────────────────────
+//* Batch Reorder ─*//
 export async function reorderTasks(
   updates: Array<{ id: string; order: number; status: TaskStatus }>,
 ): Promise<void> {
@@ -148,7 +148,7 @@ export async function reorderTasks(
   await batch.commit()
 }
 
-// ── Delete Task ───────────────────────────────────────────────────────────────
+//* Delete Task *//
 export async function deleteTask(taskId: string): Promise<void> {
   await deleteDoc(doc(db, COLLECTIONS.tasks, taskId))
 }

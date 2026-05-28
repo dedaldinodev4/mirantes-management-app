@@ -16,7 +16,7 @@ import type { User, RegisterInput, LoginInput } from '@/types'
 
 const googleProvider = new GoogleAuthProvider()
 
-// ── Register ──────────────────────────────────────────────────────────────────
+//* Register *//
 export async function register({ displayName, email, password }: RegisterInput) {
   const credential = await createUserWithEmailAndPassword(auth, email, password)
 
@@ -35,13 +35,13 @@ export async function register({ displayName, email, password }: RegisterInput) 
   return credential.user
 }
 
-// ── Login ─────────────────────────────────────────────────────────────────────
+//* Login *//
 export async function login({ email, password }: LoginInput) {
   const credential = await signInWithEmailAndPassword(auth, email, password)
   return credential.user
 }
 
-// ── Google Sign In ────────────────────────────────────────────────────────────
+//* Google Sign In *//
 export async function signInWithGoogle() {
   const credential = await signInWithPopup(auth, googleProvider)
   const user = credential.user
@@ -64,24 +64,24 @@ export async function signInWithGoogle() {
   return user
 }
 
-// ── Sign Out ──────────────────────────────────────────────────────────────────
+//* Sign Out *//
 export async function signOut() {
   await firebaseSignOut(auth)
 }
 
-// ── Password Reset ────────────────────────────────────────────────────────────
+//* Password Reset *//
 export async function resetPassword(email: string) {
   await sendPasswordResetEmail(auth, email)
 }
 
-// ── Get User Profile ──────────────────────────────────────────────────────────
+//* Get User Profile *//
 export async function getUserProfile(uid: string): Promise<User | null> {
   const snap = await getDoc(doc(db, COLLECTIONS.users, uid))
   if (!snap.exists()) return null
   return snap.data() as User
 }
 
-// ── Auth State Observer ───────────────────────────────────────────────────────
+//* Auth State Observer *//
 export function onAuthChange(callback: (user: FirebaseUser | null) => void) {
   return onAuthStateChanged(auth, callback)
 }

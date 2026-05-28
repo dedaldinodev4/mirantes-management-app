@@ -17,7 +17,7 @@ import { db } from './config'
 import { COLLECTIONS } from '@/constants'
 import type { Project, CreateProjectInput, UpdateProjectInput } from '@/types'
 
-// ── Create Project ────────────────────────────────────────────────────────────
+//* Create Project *// 
 export async function createProject(
   input: CreateProjectInput,
   ownerId: string,
@@ -38,7 +38,7 @@ export async function createProject(
   return ref.id
 }
 
-// ── Get User Projects ─────────────────────────────────────────────────────────
+//* Get User Projects *//
 export async function getUserProjects(userId: string): Promise<Project[]> {
   const q = query(
     collection(db, COLLECTIONS.projects),
@@ -51,14 +51,14 @@ export async function getUserProjects(userId: string): Promise<Project[]> {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Project)
 }
 
-// ── Get Project ───────────────────────────────────────────────────────────────
+//* Get Project *//
 export async function getProject(projectId: string): Promise<Project | null> {
   const snap = await getDoc(doc(db, COLLECTIONS.projects, projectId))
   if (!snap.exists()) return null
   return { id: snap.id, ...snap.data() } as Project
 }
 
-// ── Update Project ────────────────────────────────────────────────────────────
+//* Update Project *//
 export async function updateProject(
   projectId: string,
   input: Partial<UpdateProjectInput>,
@@ -69,7 +69,7 @@ export async function updateProject(
   })
 }
 
-// ── Delete Project (owner only) ───────────────────────────────────────────────
+//* Delete Project (owner only) *//
 export async function deleteProject(
   projectId: string,
   requesterId: string,
@@ -82,7 +82,7 @@ export async function deleteProject(
   await deleteDoc(doc(db, COLLECTIONS.projects, projectId))
 }
 
-// ── Add Member ────────────────────────────────────────────────────────────────
+//* Add Member in Project *//
 export async function addProjectMember(
   projectId: string,
   userId: string,
@@ -93,7 +93,7 @@ export async function addProjectMember(
   })
 }
 
-// ── Remove Member ─────────────────────────────────────────────────────────────
+//* Remove Member *//
 export async function removeProjectMember(
   projectId: string,
   userId: string,
