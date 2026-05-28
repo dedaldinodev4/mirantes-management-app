@@ -6,15 +6,16 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, Loader2, CheckCircle2, Circle } from 'lucide-react'
+
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { registerSchema, type RegisterFormData } from '@/features/auth/schemas'
 import { ROUTES } from '@/constants'
 import { cn } from '@/utils'
 
 const passwordRules = [
-  { label: 'At least 8 characters', test: (p: string) => p.length >= 8 },
-  { label: 'One uppercase letter', test: (p: string) => /[A-Z]/.test(p) },
-  { label: 'One number', test: (p: string) => /[0-9]/.test(p) },
+  { label: 'Mínimo 8 caracteres', test: (p: string) => p.length >= 8 },
+  { label: 'Precisa de uma maiúscula', test: (p: string) => /[A-Z]/.test(p) },
+  { label: 'Precisa de um número', test: (p: string) => /[0-9]/.test(p) },
 ]
 
 export default function RegisterPage() {
@@ -43,22 +44,22 @@ export default function RegisterPage() {
       <div className="rounded-2xl border border-border/60 bg-card/80 px-8 py-8 shadow-2xl backdrop-blur-xl">
         <div className="mb-6">
           <h1 className="text-xl font-semibold tracking-tight text-foreground">
-            Create your account
+            Criar conta
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Start managing projects for free
+          Começar a gerenciar projetos gratuitamente
           </p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
           <div>
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-              Full name
+              Nome
             </label>
             <input
               {...register('displayName')}
               type="text"
-              placeholder="Jordan Davis"
+              placeholder="Carlos Viera"
               autoComplete="name"
               className={cn(
                 'w-full rounded-lg border bg-secondary/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 transition-all outline-none',
@@ -78,7 +79,7 @@ export default function RegisterPage() {
             <input
               {...register('email')}
               type="email"
-              placeholder="you@company.com"
+              placeholder="seu@exemplo.com"
               autoComplete="email"
               className={cn(
                 'w-full rounded-lg border bg-secondary/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 transition-all outline-none',
@@ -93,7 +94,7 @@ export default function RegisterPage() {
 
           <div>
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-              Password
+              Senha
             </label>
             <div className="relative">
               <input
@@ -145,7 +146,7 @@ export default function RegisterPage() {
 
           <div>
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-              Confirm password
+              Confirmar Senha
             </label>
             <input
               {...register('confirmPassword')}
@@ -169,18 +170,18 @@ export default function RegisterPage() {
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {isSubmitting && <Loader2 size={14} className="animate-spin" />}
-            Create account
+            Criar conta
           </button>
         </form>
       </div>
 
       <p className="mt-4 text-center text-sm text-muted-foreground">
-        Already have an account?{' '}
+        Já tem conta?{' '}
         <Link
           href={ROUTES.login}
           className="font-medium text-foreground hover:text-primary transition-colors"
         >
-          Sign in
+          Entrar
         </Link>
       </p>
     </motion.div>

@@ -3,42 +3,43 @@ import { z } from 'zod'
 export const loginSchema = z.object({
   email: z
     .string()
-    .min(1, 'Email is required')
-    .email('Enter a valid email address'),
+    .min(1, 'Email é obrigatório')
+    .email('Entra com endereço de email válido'),
   password: z
     .string()
-    .min(1, 'Password is required')
-    .min(6, 'Password must be at least 6 characters'),
+    .min(1, 'Senha é obrigatório')
+    .min(6, 'Precisa ter pelo menos 6 caracteres'),
 })
 
 export const registerSchema = z
   .object({
     displayName: z
       .string()
-      .min(2, 'Name must be at least 2 characters')
-      .max(50, 'Name is too long')
-      .regex(/^[a-zA-Z\s]+$/, 'Name can only contain letters and spaces'),
+      .min(2, 'Nome muito curto')
+      .max(50, 'Nome muito longo')
+      .regex(/^[a-zA-Z\s]+$/, 'Nome pode conter apenas letras e espaços'),
     email: z
       .string()
-      .min(1, 'Email is required')
-      .email('Enter a valid email address'),
+      .min(1, 'Email é obrigatório')
+      .email('Entra com endereço de email válido'),
     password: z
       .string()
-      .min(8, 'Password must be at least 8 characters')
-      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-      .regex(/[0-9]/, 'Password must contain at least one number'),
-    confirmPassword: z.string().min(1, 'Please confirm your password'),
+      .min(8, 'Precisa ter pelo menos 8 caracteres')
+      .regex(/[A-Z]/, 'A senha deve conter pelo menos uma letra maiúscula')
+      .regex(/[0-9]/, 'A senha deve conter pelo menos um número'),
+    confirmPassword: z.string().min(1, 'Por favor, confirme sua senha'),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: 'Passwords do not match',
+    message: 'Senhas não conicidem',
     path: ['confirmPassword'],
   })
+
 
 export const resetPasswordSchema = z.object({
   email: z
     .string()
-    .min(1, 'Email is required')
-    .email('Enter a valid email address'),
+    .min(1, 'Email é obrigatório')
+    .email('Email inválido'),
 })
 
 export type LoginFormData = z.infer<typeof loginSchema>

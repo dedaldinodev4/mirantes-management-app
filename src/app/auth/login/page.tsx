@@ -5,7 +5,8 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
-import { Eye, EyeOff, Loader2, Github } from 'lucide-react'
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
+
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { loginSchema, type LoginFormData } from '@/features/auth/schemas'
 import { ROUTES } from '@/constants'
@@ -35,10 +36,10 @@ export default function LoginPage() {
       <div className="rounded-2xl border border-border/60 bg-card/80 px-8 py-8 shadow-2xl backdrop-blur-xl">
         <div className="mb-6">
           <h1 className="text-xl font-semibold tracking-tight text-foreground">
-            Welcome back
+          Bem-vindo de volta
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Sign in to your Flow workspace
+          Entre na sua conta para continuar
           </p>
         </div>
 
@@ -54,7 +55,7 @@ export default function LoginPage() {
             <path fill="#FBBC05" d="M5.525 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62h-3.98a11.86 11.86 0 000 10.76l3.98-3.09z"/>
             <path fill="#EA4335" d="M12.255 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C18.205 1.19 15.495 0 12.255 0c-4.69 0-8.74 2.7-10.71 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"/>
           </svg>
-          Continue with Google
+          Usar conta Google
         </button>
 
         <div className="relative mb-4">
@@ -62,7 +63,7 @@ export default function LoginPage() {
             <div className="w-full border-t border-border/50" />
           </div>
           <div className="relative flex justify-center">
-            <span className="bg-card px-3 text-xs text-muted-foreground">or</span>
+            <span className="bg-card px-3 text-xs text-muted-foreground">ou</span>
           </div>
         </div>
 
@@ -75,7 +76,7 @@ export default function LoginPage() {
             <input
               {...register('email')}
               type="email"
-              placeholder="you@company.com"
+              placeholder="seu@email.com"
               autoComplete="email"
               className={cn(
                 'w-full rounded-lg border bg-secondary/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 transition-all outline-none',
@@ -91,13 +92,13 @@ export default function LoginPage() {
           <div>
             <div className="mb-1.5 flex items-center justify-between">
               <label className="text-xs font-medium text-muted-foreground">
-                Password
+                Palavra-passe
               </label>
               <Link
                 href="#"
                 className="text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
-                Forgot password?
+                Esqueceu a palavra-passe?
               </Link>
             </div>
             <div className="relative">
@@ -116,7 +117,7 @@ export default function LoginPage() {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-label={showPassword ? 'Não mostra senha' : 'Mostrar senha'}
               >
                 {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
@@ -132,18 +133,18 @@ export default function LoginPage() {
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {isSubmitting && <Loader2 size={14} className="animate-spin" />}
-            Sign in
+            Entrar
           </button>
         </form>
       </div>
 
       <p className="mt-4 text-center text-sm text-muted-foreground">
-        Don&apos;t have an account?{' '}
+        Você não tem uma conta?{' '}
         <Link
           href={ROUTES.register}
           className="font-medium text-foreground hover:text-primary transition-colors"
         >
-          Create account
+          Criar agora
         </Link>
       </p>
     </motion.div>

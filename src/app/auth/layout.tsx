@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Sign In',
+  title: 'Auth',
 }
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -41,13 +41,13 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         {children}
 
         <p className="mt-8 text-center text-xs text-muted-foreground">
-          By continuing, you agree to our{' '}
+        Ao continuar, você concorda com o nosso{' '}
           <a href="#" className="underline underline-offset-2 hover:text-foreground">
-            Terms
+            Termos
           </a>{' '}
-          and{' '}
+          e{' '}
           <a href="#" className="underline underline-offset-2 hover:text-foreground">
-            Privacy Policy
+            Política de Privacidade
           </a>
           .
         </p>
