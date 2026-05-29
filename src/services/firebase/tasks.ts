@@ -7,10 +7,10 @@ import {
   deleteDoc,
   query,
   where,
-  orderBy,
   serverTimestamp,
   writeBatch,
   Timestamp,
+  getCountFromServer,
 } from 'firebase/firestore'
 import { db } from './config'
 import { COLLECTIONS } from '@/constants'
@@ -22,15 +22,15 @@ export async function createTask(
   input: CreateTaskInput,
   reporterId: string,
 ): Promise<string> {
-  // Get max order in column
-  const existingQ = query(
-    collection(db, COLLECTIONS.tasks),
-    where('projectId', '==', input.projectId),
-    where('status', '==', input.status),
-    orderBy('order', 'desc'),
+  // Simple count-based order — no compound index needed
+  const colSnap = await getCountFromServer(
+    query(
+      collection(db, COLLECTIONS.tasks),
+      where('projectId', '==', input.projectId),
+      where('status', '==', input.status),
+    ),
   )
-  const snap = await getDocs(existingQ)
-  const maxOrder = snap.docs.length > 0 ? (snap.docs[0].data().order ?? 0) + 1 : 0
+  const order = colSnap.data().count
 
   const ref = await addDoc(collection(db, COLLECTIONS.tasks), {
     title: input.title,
@@ -43,7 +43,7 @@ export async function createTask(
     reporterId,
     dueDate: input.dueDate ? Timestamp.fromDate(new Date(input.dueDate)) : null,
     completedAt: null,
-    order: maxOrder,
+    order,
     attachments: [],
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -57,14 +57,16 @@ export async function getProjectTasks(
   projectId: string,
   filters?: TaskFilters,
 ): Promise<Task[]> {
-  let q = query(
+  const q = query(
     collection(db, COLLECTIONS.tasks),
     where('projectId', '==', projectId),
-    orderBy('order', 'asc'),
   )
 
   const snap = await getDocs(q)
   let tasks = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Task)
+
+  // Sort client-side to avoid needing composite indexes
+  tasks.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
 
   // Client-side filtering
   if (filters) {
@@ -80,11 +82,11 @@ export async function getProjectTasks(
       )
     }
     if (filters.search) {
-      const q = filters.search.toLowerCase()
+      const sq = filters.search.toLowerCase()
       tasks = tasks.filter(
         (t) =>
-          t.title.toLowerCase().includes(q) ||
-          t.description.toLowerCase().includes(q),
+          t.title.toLowerCase().includes(sq) ||
+          t.description.toLowerCase().includes(sq),
       )
     }
     if (filters.overdue) {
@@ -151,4 +153,15 @@ export async function reorderTasks(
 //* Delete Task *//
 export async function deleteTask(taskId: string): Promise<void> {
   await deleteDoc(doc(db, COLLECTIONS.tasks, taskId))
+}
+
+//* Delete All Tasks of a Project (for cascade delete) *//
+export async function deleteProjectTasks(projectId: string): Promise<void> {
+  const snap = await getDocs(
+    query(collection(db, COLLECTIONS.tasks), where('projectId', '==', projectId)),
+  )
+  if (snap.empty) return
+  const batch = writeBatch(db)
+  snap.docs.forEach((d) => batch.delete(d.ref))
+  await batch.commit()
 }

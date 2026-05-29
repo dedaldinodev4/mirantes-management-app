@@ -9,12 +9,15 @@ import {
   createProject,
   updateProject,
   deleteProject,
+  addProjectMember,
+  removeProjectMember,
+  findUserByEmail,
 } from '@/services/firebase/projects'
 import type { CreateProjectInput, UpdateProjectInput } from '@/types'
 
 export function useProjects() {
   const { firebaseUser } = useAuthStore()
-  const { projects, setProjects, loading, setLoading } = useProjectsStore()
+  const { projects, setProjects, removeProject, loading, setLoading } = useProjectsStore()
 
   const load = useCallback(async () => {
     if (!firebaseUser) return
@@ -33,24 +36,80 @@ export function useProjects() {
 
   const handleCreate = async (input: CreateProjectInput) => {
     if (!firebaseUser) return
-    const id = await createProject(input, firebaseUser.uid)
-    toast.success('Projeto criado!', { description: input.name })
-    await load()
-    return id
+    try {
+      const id = await createProject(input, firebaseUser.uid)
+      toast.success('Projeto criado!', { description: input.name })
+      await load()
+      return id
+    } catch (err: any) {
+      toast.error('Falha ao criar projeto', { description: err?.message })
+    }
   }
 
   const handleUpdate = async (projectId: string, input: Partial<UpdateProjectInput>) => {
-    await updateProject(projectId, input)
-    toast.success('Projeto atualizado')
-    await load()
+    try {
+      await updateProject(projectId, input)
+      toast.success('Projeto atualizado')
+      await load()
+    } catch (err: any) {
+      toast.error('Falha ao atualizar projeto', { description: err?.message })
+    }
   }
 
   const handleDelete = async (projectId: string) => {
     if (!firebaseUser) return
-    await deleteProject(projectId, firebaseUser.uid)
-    toast.success('Projeto apagado')
-    await load()
+    removeProject(projectId)
+    try {
+      await deleteProject(projectId, firebaseUser.uid)
+      toast.success('Projeto apagado')
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Falha ao apagar o projeto')
+      // Rollback by reloading
+      await load()
+    }
   }
 
-  return { projects, loading, create: handleCreate, update: handleUpdate, delete: handleDelete, refetch: load }
+  
+  const handleAddMember = async (projectId: string, email: string): Promise<void> => {
+    try {
+      const user = await findUserByEmail(email)
+      if (!user) {
+        toast.error('Usuário não encontrado', { description: `Conta não encontrada ${email}` })
+        return
+      }
+      const project = projects.find((p) => p.id === projectId)
+      if (project?.memberIds.includes(user.uid as string)) {
+        toast.warning('Já é um membro', { description: `${email} já é membro do projeto` })
+        return
+      }
+      await addProjectMember(projectId, user.uid as string)
+      toast.success('Membro adicionado!!', { description: (user as any).displayName ?? email })
+      await load()
+    } catch (err: any) {
+      toast.error('Falha ao adicionar o membro', { description: err?.message })
+    }
+  }
+
+  
+  const handleRemoveMember = async (projectId: string, userId: string): Promise<void> => {
+    if (!firebaseUser) return
+    try {
+      await removeProjectMember(projectId, userId, firebaseUser.uid)
+      toast.success('Membro removido')
+      await load()
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Falha ao remover membro')
+    }
+  }
+
+  return {
+    projects,
+    loading,
+    create: handleCreate,
+    update: handleUpdate,
+    delete: handleDelete,
+    addMember: handleAddMember,
+    removeMember: handleRemoveMember,
+    refetch: load,
+  }
 }

@@ -10,14 +10,20 @@ import {
   updateTask,
   deleteTask,
   moveTask,
-  reorderTasks,
 } from '@/services/firebase/tasks'
 import type { CreateTaskInput, UpdateTaskInput, TaskStatus } from '@/types'
 
 export function useTasks(projectId: string) {
   const { firebaseUser } = useAuthStore()
-  const { tasks, setTasks, columns, moveTaskLocally, addTask, updateTask: storeUpdate, removeTask } =
-    useProjectsStore()
+  const {
+    tasks,
+    setTasks,
+    columns,
+    moveTaskLocally,
+    addTask,
+    updateTask: storeUpdate,
+    removeTask,
+  } = useProjectsStore()
 
   const projectTasks = tasks.filter((t) => t.projectId === projectId)
 
@@ -25,11 +31,10 @@ export function useTasks(projectId: string) {
     if (!projectId) return
     try {
       const data = await getProjectTasks(projectId)
-      // merge with existing tasks from other projects
       const otherTasks = tasks.filter((t) => t.projectId !== projectId)
       setTasks([...otherTasks, ...data])
-    } catch {
-      toast.error('Falha ao carregar tarefas')
+    } catch (err: any) {
+      toast.error('Failed to load tasks', { description: err?.message })
     }
   }, [projectId])
 
@@ -40,40 +45,41 @@ export function useTasks(projectId: string) {
     try {
       const id = await createTask(input, firebaseUser.uid)
       toast.success('Tarefa criada!', { description: input.title })
+      // Reload to get real Firestore data with timestamps
       await load()
       return id
-    } catch {
-      toast.error('Falha ao criar tarefa')
+    } catch (err: any) {
+      toast.error('Falha ao criar tarefa', { description: err?.message })
     }
   }
 
   const handleUpdate = async (taskId: string, input: Partial<UpdateTaskInput>) => {
+    storeUpdate(taskId, input as any)
     try {
-      storeUpdate(taskId, input as any)
       await updateTask(taskId, input)
-    } catch {
-      toast.error('Falha ao atualizar tarefa')
-      await load()
+    } catch (err: any) {
+      toast.error('Falha ao atualizar tarefa', { description: err?.message })
+      await load() // rollback
     }
   }
 
   const handleDelete = async (taskId: string) => {
+    removeTask(taskId)
     try {
-      removeTask(taskId)
       await deleteTask(taskId)
-      toast.success('Task deleted')
-    } catch {
-      toast.error('Falha ao apagar tarefa')
-      await load()
+      toast.success('Tarefa apagada')
+    } catch (err: any) {
+      toast.error('Falha ao apagar tarefa', { description: err?.message })
+      await load() // rollback
     }
   }
 
   const handleMove = async (taskId: string, newStatus: TaskStatus, newOrder: number) => {
+    moveTaskLocally(taskId, newStatus, newOrder)
     try {
-      moveTaskLocally(taskId, newStatus, newOrder)
       await moveTask(taskId, newStatus, newOrder)
-    } catch {
-      toast.error('Falha ao mover tarefa')
+    } catch (err: any) {
+      toast.error('Falha ao mover tarefa', { description: err?.message })
       await load()
     }
   }

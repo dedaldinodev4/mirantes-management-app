@@ -12,10 +12,12 @@ import {
   serverTimestamp,
   arrayUnion,
   arrayRemove,
+  writeBatch,
 } from 'firebase/firestore'
 import { db } from './config'
 import { COLLECTIONS } from '@/constants'
-import type { Project, CreateProjectInput, UpdateProjectInput } from '@/types'
+import type { Project, CreateProjectInput, UpdateProjectInput, TaskStatus } from '@/types'
+import { deleteProjectTasks } from './tasks'
 
 //* Create Project *// 
 export async function createProject(
@@ -43,12 +45,18 @@ export async function getUserProjects(userId: string): Promise<Project[]> {
   const q = query(
     collection(db, COLLECTIONS.projects),
     where('memberIds', 'array-contains', userId),
-    where('archived', '==', false),
-    orderBy('createdAt', 'desc'),
   )
-
   const snap = await getDocs(q)
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Project)
+  const projects = snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }) as Project)
+    .filter((p) => !p.archived)
+    // Sort client-side to avoid needing composite index
+    .sort((a, b) => {
+      const ta = (a.createdAt as any)?.toMillis?.() ?? 0
+      const tb = (b.createdAt as any)?.toMillis?.() ?? 0
+      return tb - ta
+    })
+  return projects
 }
 
 //* Get Project *//
@@ -77,8 +85,10 @@ export async function deleteProject(
   const project = await getProject(projectId)
   if (!project) throw new Error('Project not found')
   if (project.ownerId !== requesterId) {
-    throw new Error('Only the project owner can delete it')
+    throw new Error('Only the project owner can delete this project')
   }
+  // Cascade: remove all tasks belonging to this project
+  await deleteProjectTasks(projectId)
   await deleteDoc(doc(db, COLLECTIONS.projects, projectId))
 }
 
@@ -108,4 +118,15 @@ export async function removeProjectMember(
     memberIds: arrayRemove(userId),
     updatedAt: serverTimestamp(),
   })
+}
+
+//* Find user by email *//
+export async function findUserByEmail(email: string) {
+  const q = query(
+    collection(db, COLLECTIONS.users),
+    where('email', '==', email.toLowerCase().trim()),
+  )
+  const snap = await getDocs(q)
+  if (snap.empty) return null
+  return { uid: snap.docs[0].id, ...snap.docs[0].data() }
 }

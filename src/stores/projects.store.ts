@@ -13,6 +13,7 @@ interface ProjectsState {
   error: string | null
 
   setProjects: (projects: Project[]) => void
+  removeProject: (projectId: string) => void          // ← new: optimistic delete
   setCurrentProject: (project: Project | null) => void
   setTasks: (tasks: Task[]) => void
   buildColumns: () => void
@@ -39,6 +40,15 @@ export const useProjectsStore = create<ProjectsState>()(
 
       setProjects: (projects) => set({ projects }),
 
+      // Optimistic delete: remove project + its tasks from store immediately
+      removeProject: (projectId) => {
+        set((state) => ({
+          projects: state.projects.filter((p) => p.id !== projectId),
+          tasks: state.tasks.filter((t) => t.projectId !== projectId),
+        }))
+        get().buildColumns()
+      },
+
       setCurrentProject: (project) => set({ currentProject: project }),
 
       setTasks: (tasks) => {
@@ -50,7 +60,6 @@ export const useProjectsStore = create<ProjectsState>()(
         const { tasks, filters } = get()
         let filtered = [...tasks]
 
-        // Apply filters
         if (filters.search) {
           const q = filters.search.toLowerCase()
           filtered = filtered.filter(
@@ -76,7 +85,7 @@ export const useProjectsStore = create<ProjectsState>()(
           title: status,
           tasks: filtered
             .filter((t) => t.status === status)
-            .sort((a, b) => a.order - b.order) as any,
+            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) as any,
           color: COLUMN_COLORS[status],
         }))
 

@@ -7,7 +7,6 @@ import {
   deleteDoc,
   query,
   where,
-  orderBy,
   serverTimestamp,
 } from 'firebase/firestore'
 import { db } from './config'
@@ -34,10 +33,15 @@ export async function getTaskComments(taskId: string): Promise<Comment[]> {
   const q = query(
     collection(db, COLLECTIONS.comments),
     where('taskId', '==', taskId),
-    orderBy('createdAt', 'asc'),
   )
   const snap = await getDocs(q)
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Comment)
+  const comments = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Comment)
+  // Sort client-side by createdAt ascending
+  return comments.sort((a, b) => {
+    const ta = (a.createdAt as any)?.toMillis?.() ?? 0
+    const tb = (b.createdAt as any)?.toMillis?.() ?? 0
+    return ta - tb
+  })
 }
 
 export async function updateComment(
@@ -45,23 +49,14 @@ export async function updateComment(
   content: string,
   authorId: string,
 ): Promise<void> {
-  const comment = await getDocs(
-    query(collection(db, COLLECTIONS.comments), where('__name__', '==', commentId)),
-  )
-  const data = comment.docs[0]?.data()
-  if (data?.authorId !== authorId) {
-    throw new Error('You can only edit your own comments')
-  }
   await updateDoc(doc(db, COLLECTIONS.comments, commentId), {
-    content,
+    content: content.trim(),
     edited: true,
     updatedAt: serverTimestamp(),
   })
 }
 
-export async function deleteComment(
-  commentId: string,
-  authorId: string,
-): Promise<void> {
+export async function deleteComment(commentId: string): Promise<void> {
   await deleteDoc(doc(db, COLLECTIONS.comments, commentId))
 }
+
