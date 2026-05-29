@@ -3,19 +3,28 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
-import { Loader2, Sun, Moon, Bell, Shield, Palette } from 'lucide-react'
+import { Loader2, Sun, Moon } from 'lucide-react'
 import { useTheme } from 'next-themes'
+
 import { AppShell } from '@/components/layout/AppShell'
 import { TopBar } from '@/components/layout/TopBar'
 import { Avatar } from '@/components/shared/Avatar'
+
 import { useAuthStore } from '@/stores/auth.store'
 import { cn } from '@/utils'
 
-const TABS = ['Profile', 'Appearance', 'Notifications', 'Security'] as const
+const TABS = [
+  { id: 'profile', label: 'Perfil' },
+  { id: 'appearance', label: 'Appearance' },
+  { id: 'notifications', label: 'Notificações' },
+  { id: 'security', label: 'Segurança' }
+] as const
 type Tab = (typeof TABS)[number]
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<Tab>('Profile')
+  const [activeTab, setActiveTab] = useState<Tab>({
+    id: 'profile', label: 'Perfil'
+  })
   const { profile } = useAuthStore()
   const { theme, setTheme } = useTheme()
   const [saving, setSaving] = useState(false)
@@ -24,22 +33,22 @@ export default function SettingsPage() {
     setSaving(true)
     await new Promise((r) => setTimeout(r, 800))
     setSaving(false)
-    toast.success('Settings saved')
+    toast.success('Configurações salvas!')
   }
 
   return (
     <AppShell>
       <div className="flex flex-1 flex-col overflow-hidden">
-        <TopBar title="Settings" breadcrumbs={[{ label: 'Settings' }]} />
+        <TopBar title="Settings" breadcrumbs={[{ label: 'Configurações' }]} />
         <div className="flex-1 overflow-auto p-6">
           <div className="mx-auto max-w-2xl">
-            <h1 className="mb-5 text-base font-semibold text-foreground">Settings</h1>
+            <h1 className="mb-5 text-base font-semibold text-foreground">Configurações</h1>
 
             {/* Tabs */}
             <div className="mb-6 flex gap-0 border-b border-border">
               {TABS.map((tab) => (
                 <button
-                  key={tab}
+                  key={tab.id}
                   onClick={() => setActiveTab(tab)}
                   className={cn(
                     'px-4 py-2 text-sm font-medium transition-all border-b-2 -mb-px',
@@ -48,16 +57,16 @@ export default function SettingsPage() {
                       : 'border-transparent text-muted-foreground hover:text-foreground',
                   )}
                 >
-                  {tab}
+                  {tab.label}
                 </button>
               ))}
             </div>
 
-            <motion.div key={activeTab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-              {activeTab === 'Profile' && (
+            <motion.div key={activeTab.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+              {activeTab.id === 'profile' && (
                 <div className="space-y-5">
                   <div className="rounded-xl border border-border bg-card p-5">
-                    <h2 className="mb-4 text-sm font-medium text-foreground">Profile Information</h2>
+                    <h2 className="mb-4 text-sm font-medium text-foreground">Informações do Usuário</h2>
                     <div className="flex items-center gap-4 mb-5">
                       {profile && <Avatar name={profile.displayName} photoURL={profile.photoURL} size="lg" />}
                       <div>
@@ -68,7 +77,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="space-y-4">
                       <div>
-                        <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Full name</label>
+                        <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Nome</label>
                         <input
                           defaultValue={profile?.displayName}
                           className="w-full rounded-lg border border-border/60 bg-secondary/50 px-3 py-2 text-sm text-foreground outline-none transition-all focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
@@ -79,6 +88,7 @@ export default function SettingsPage() {
                         <input
                           defaultValue={profile?.email}
                           type="email"
+                          disabled
                           className="w-full rounded-lg border border-border/60 bg-secondary/50 px-3 py-2 text-sm text-foreground outline-none transition-all focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
                         />
                       </div>
@@ -90,16 +100,16 @@ export default function SettingsPage() {
                         className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-all"
                       >
                         {saving && <Loader2 size={13} className="animate-spin" />}
-                        Save changes
+                        Salvar
                       </button>
                     </div>
                   </div>
                 </div>
               )}
 
-              {activeTab === 'Appearance' && (
+              {activeTab.id === 'appearance' && (
                 <div className="rounded-xl border border-border bg-card p-5">
-                  <h2 className="mb-4 text-sm font-medium text-foreground">Appearance</h2>
+                  <h2 className="mb-4 text-sm font-medium text-foreground">Aparência</h2>
                   <div className="grid grid-cols-2 gap-3">
                     {(['dark', 'light'] as const).map((t) => (
                       <button
@@ -111,22 +121,24 @@ export default function SettingsPage() {
                         )}
                       >
                         {t === 'dark' ? <Moon size={20} className="text-muted-foreground" /> : <Sun size={20} className="text-muted-foreground" />}
-                        <span className="text-sm font-medium capitalize text-foreground">{t} mode</span>
-                        {theme === t && <span className="text-[10px] text-primary font-medium">Active</span>}
+                        <span className="text-sm font-medium capitalize text-foreground">
+                          tema {t === 'dark'? 'escuro': 'claro'}
+                          </span>
+                        {theme === t && <span className="text-[10px] text-primary font-medium">Activo</span>}
                       </button>
                     ))}
                   </div>
                 </div>
               )}
 
-              {activeTab === 'Notifications' && (
+              {activeTab.id === 'notifications' && (
                 <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-                  <h2 className="text-sm font-medium text-foreground">Notification Preferences</h2>
+                  <h2 className="text-sm font-medium text-foreground">Notificações</h2>
                   {[
-                    { label: 'Task assigned to me', desc: 'When a task is assigned to you' },
-                    { label: 'Task overdue', desc: 'When a task passes its due date' },
-                    { label: 'New comment', desc: 'When someone comments on your task' },
-                    { label: 'Project updates', desc: 'When a project is updated' },
+                    { label: 'Tarefa atribuída a mim', desc: 'Quando uma tarefa é atribuída a você' },
+                    { label: 'Tarefa atrasada', desc: 'Quando uma tarefa ultrapassa sua data de vencimento' },
+                    { label: 'Novo comentário', desc: 'Quando alguém comentar sobre sua tarefa' },
+                    { label: 'Projeto atualiza', desc: 'Quando um projeto é atualizado' },
                   ].map((item, i) => (
                     <div key={i} className="flex items-center justify-between py-2 border-b border-border last:border-0">
                       <div>
@@ -144,23 +156,23 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              {activeTab === 'Security' && (
+              {activeTab.id === 'security' && (
                 <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-                  <h2 className="text-sm font-medium text-foreground">Security</h2>
+                  <h2 className="text-sm font-medium text-foreground">Segurança</h2>
                   <div className="space-y-4">
                     <div>
-                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Current password</label>
+                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Senha atual</label>
                       <input type="password" placeholder="••••••••" className="w-full rounded-lg border border-border/60 bg-secondary/50 px-3 py-2 text-sm outline-none focus:border-primary/60" />
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">New password</label>
+                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Nova Senha</label>
                       <input type="password" placeholder="••••••••" className="w-full rounded-lg border border-border/60 bg-secondary/50 px-3 py-2 text-sm outline-none focus:border-primary/60" />
                     </div>
                     <button
                       onClick={handleSave}
                       className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-all"
                     >
-                      Update password
+                      Atualizar senha
                     </button>
                   </div>
                 </div>

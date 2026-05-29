@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { X, Calendar, User, Tag, Flag, Trash2, MessageSquare, Loader2 } from 'lucide-react'
+
 import { PriorityBadge } from '@/components/shared/PriorityBadge'
-import { Avatar } from '@/components/shared/Avatar'
+
 import { useProjectsStore } from '@/stores/projects.store'
 import { PRIORITY_CONFIG, COLUMN_COLORS, LABEL_COLORS, ROUTES } from '@/constants'
 import { cn, formatDate, isOverdue, getDueDateLabel } from '@/utils'
@@ -29,7 +30,7 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
   }, [open])
 
   const handleDelete = async () => {
-    if (!task || !confirm('Delete this task? This cannot be undone.')) return
+    if (!task || !confirm('Apagar esta tarefa? Esta  ação não pode ser desfeita.')) return
     await onDelete(task.id)
     onClose()
   }
@@ -81,7 +82,7 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
                   )}
                   {overdue && (
                     <span className="inline-flex items-center rounded bg-red-500/10 px-1.5 py-0.5 text-[10px] font-medium text-red-400">
-                      ⚠ Overdue
+                      ⚠ Atrasado
                     </span>
                   )}
                 </div>
@@ -101,7 +102,7 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
                 {/* Description */}
                 <div>
                   <h3 className="mb-2 text-[11px] font-medium uppercase tracking-widest text-muted-foreground/60">
-                    Description
+                    Descrição
                   </h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {task.description || 'No description provided.'}
@@ -135,13 +136,13 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
                 {/* Comment */}
                 <div>
                   <h3 className="mb-2 text-[11px] font-medium uppercase tracking-widest text-muted-foreground/60">
-                    Add Comment
+                    Comentar
                   </h3>
                   <textarea
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
                     rows={3}
-                    placeholder="Write a comment…"
+                    placeholder="Escreva um comentário…"
                     className="w-full resize-none rounded-lg border border-border/60 bg-secondary/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 outline-none transition-all focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
                   />
                   <div className="mt-2 flex justify-end">
@@ -150,7 +151,7 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
                       className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-all"
                     >
                       {submitting && <Loader2 size={11} className="animate-spin" />}
-                      Post comment
+                      Enviar
                     </button>
                   </div>
                 </div>
@@ -158,20 +159,20 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
 
               {/* Sidebar meta */}
               <div className="w-44 flex-shrink-0 border-l border-border bg-secondary/20 p-4 space-y-4">
-                <MetaRow icon={<Flag size={12} />} label="Priority">
+                <MetaRow icon={<Flag size={12} />} label="Prioridade">
                   <span className={cn('text-xs', PRIORITY_CONFIG[task.priority].color)}>
                     {PRIORITY_CONFIG[task.priority].label}
                   </span>
                 </MetaRow>
-                <MetaRow icon={<Calendar size={12} />} label="Due date">
+                <MetaRow icon={<Calendar size={12} />} label="Prazo">
                   <span className={cn('text-xs', dueLabel?.urgent ? 'text-red-400' : 'text-muted-foreground')}>
                     {task.dueDate ? formatDate(task.dueDate) : '—'}
                   </span>
                 </MetaRow>
-                <MetaRow icon={<User size={12} />} label="Assignee">
-                  <span className="text-xs text-muted-foreground">Unassigned</span>
+                <MetaRow icon={<User size={12} />} label="Responsável">
+                  <span className="text-xs text-muted-foreground">Não atribuído</span>
                 </MetaRow>
-                <MetaRow icon={<Tag size={12} />} label="Label">
+                <MetaRow icon={<Tag size={12} />} label="Etiqueta">
                   {task.label ? (
                     <span className={cn('text-xs font-medium', labelColor.text)}>{task.label}</span>
                   ) : (
@@ -187,13 +188,13 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
                 onClick={handleDelete}
                 className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
               >
-                <Trash2 size={12} /> Delete task
+                <Trash2 size={12} /> Apagar tarefa
               </button>
               <button
                 onClick={onClose}
                 className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
               >
-                Close
+                Fechar
               </button>
             </div>
           </motion.div>

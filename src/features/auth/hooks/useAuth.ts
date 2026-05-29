@@ -18,16 +18,16 @@ export function useAuth() {
   const handleLogin = async (input: LoginInput) => {
     try {
       await login(input)
-      toast.success('Welcome back!', { description: 'You are now signed in.' })
+      toast.success('Bem-vindo de volta!', { description: 'Usuário logado.' })
       router.push(ROUTES.dashboard)
     } catch (err: any) {
       const messages: Record<string, string> = {
-        'auth/user-not-found': 'No account with this email.',
-        'auth/wrong-password': 'Incorrect password.',
-        'auth/too-many-requests': 'Too many attempts. Try again later.',
-        'auth/invalid-credential': 'Invalid email or password.',
+        'auth/user-not-found': 'Nenhuma conta com este e-mail.',
+        'auth/wrong-password': 'Senha incorreta.',
+        'auth/too-many-requests': 'Muitas tentativas.Tente novamente mais tarde.',
+        'auth/invalid-credential': 'E-mail ou senha inválida.',
       }
-      toast.error(messages[err.code] ?? 'Login failed. Please try again.')
+      toast.error(messages[err.code] ?? 'Login falhou. Por favor, tente novamente.')
       throw err
     }
   }
@@ -35,14 +35,14 @@ export function useAuth() {
   const handleRegister = async (input: RegisterInput) => {
     try {
       await register(input)
-      toast.success('Account created!', { description: `Welcome, ${input.displayName}!` })
+      toast.success('Conta criada!', { description: `Bem-vindo, ${input.displayName}!` })
       router.push(ROUTES.dashboard)
     } catch (err: any) {
       const messages: Record<string, string> = {
-        'auth/email-already-in-use': 'An account with this email already exists.',
-        'auth/weak-password': 'Password is too weak.',
+        'auth/email-already-in-use': 'Uma conta com este e-mail já existe.',
+        'auth/weak-password': 'A senha é muito fraca.',
       }
-      toast.error(messages[err.code] ?? 'Registration failed. Please try again.')
+      toast.error(messages[err.code] ?? 'Registro falhou. Por favor, tente novamente.')
       throw err
     }
   }
@@ -50,11 +50,11 @@ export function useAuth() {
   const handleGoogleSignIn = async () => {
     try {
       await signInWithGoogle()
-      toast.success('Signed in with Google!')
+      toast.success('Entrou com Google!')
       router.push(ROUTES.dashboard)
     } catch (err: any) {
       if (err.code !== 'auth/popup-closed-by-user') {
-        toast.error('Google sign-in failed. Please try again.')
+        toast.error('Falha no login do Google. Por favor, tente novamente.')
       }
       throw err
     }
@@ -63,21 +63,21 @@ export function useAuth() {
   const handleSignOut = async () => {
     try {
       await signOut()
-      toast.success('Signed out successfully.')
+      toast.success('Saiu com sucesso.')
       router.push(ROUTES.login)
     } catch {
-      toast.error('Failed to sign out.')
+      toast.error('Não foi possível sair.')
     }
   }
 
   const handleResetPassword = async (email: string) => {
     try {
       await resetPassword(email)
-      toast.success('Reset email sent!', {
-        description: 'Check your inbox for the password reset link.',
+      toast.success('Redefinir e-mail enviado!', {
+        description: 'Verifique sua caixa de entrada para o link de redefinição de senha.',
       })
     } catch (err: any) {
-      toast.error('Failed to send reset email.')
+      toast.error('Não foi possível enviar o e-mail de redefinição.')
       throw err
     }
   }

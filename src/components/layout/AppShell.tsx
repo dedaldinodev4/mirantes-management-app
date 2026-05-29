@@ -17,10 +17,10 @@ import { CommandPalette } from '@/features/dashboard/components/CommandPalette'
 
 const NAV_ITEMS = [
   { href: ROUTES.dashboard, icon: LayoutDashboard, label: 'Dashboard' },
-  { href: ROUTES.projects, icon: Folder, label: 'Projects' },
-  { href: '/notifications', icon: Bell, label: 'Notifications', badge: 3 },
-  { href: '/members', icon: Users, label: 'Members' },
-  { href: ROUTES.settings, icon: Settings, label: 'Settings' },
+  { href: ROUTES.projects, icon: Folder, label: 'Projetos' },
+  { href: '/notifications', icon: Bell, label: 'Notificações', badge: 3 },
+  { href: '/members', icon: Users, label: 'Membros' },
+  { href: ROUTES.settings, icon: Settings, label: 'Configurações' },
 ]
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -79,7 +79,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Search size={14} className="flex-shrink-0" />
             {!sidebarCollapsed && (
               <span className="flex-1 text-left whitespace-nowrap overflow-hidden">
-                Search...
+                Buscar...
               </span>
             )}
             {!sidebarCollapsed && (
@@ -118,7 +118,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="mt-4 pt-3 border-t border-border">
               <div className="flex items-center justify-between mb-1.5 px-2">
                 <span className="text-[10px] font-medium tracking-widest uppercase text-muted-foreground/70">
-                  Projects
+                  Projetos
                 </span>
                 <Link
                   href={ROUTES.newProject}
@@ -154,7 +154,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-[12px] text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
           >
             {theme === 'dark' ? <Sun size={14} className="flex-shrink-0" /> : <Moon size={14} className="flex-shrink-0" />}
-            {!sidebarCollapsed && <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>}
+            {!sidebarCollapsed && <span>Tema {theme === 'dark' ? 'claro' : 'escuro'}</span>}
           </button>
 
           <button
@@ -162,7 +162,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-[12px] text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
           >
             <LogOut size={14} className="flex-shrink-0" />
-            {!sidebarCollapsed && <span>Sign out</span>}
+            {!sidebarCollapsed && <span>Sair</span>}
           </button>
 
           {/* User */}

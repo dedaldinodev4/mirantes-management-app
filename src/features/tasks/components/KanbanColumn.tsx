@@ -60,7 +60,7 @@ export function KanbanColumn({
 
         {tasks.length === 0 && (
           <div className="flex flex-1 items-center justify-center py-6">
-            <p className="text-[11px] text-muted-foreground/50">Drop tasks here</p>
+            <p className="text-[11px] text-muted-foreground/50">Largue tarefas aqui</p>
           </div>
         )}
       </div>

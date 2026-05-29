@@ -36,8 +36,8 @@ export default function NewProjectPage() {
         <TopBar
           title="New Project"
           breadcrumbs={[
-            { label: 'Projects', href: ROUTES.projects },
-            { label: 'New' },
+            { label: 'Projetos', href: ROUTES.projects },
+            { label: 'Novo' },
           ]}
         />
         <div className="flex-1 overflow-auto p-6">
@@ -47,19 +47,19 @@ export default function NewProjectPage() {
             className="mx-auto max-w-lg"
           >
             <div className="rounded-xl border border-border bg-card p-6">
-              <h2 className="mb-1 text-base font-semibold text-foreground">Create Project</h2>
+              <h2 className="mb-1 text-base font-semibold text-foreground">Novo Projeto</h2>
               <p className="mb-6 text-xs text-muted-foreground">
-                Set up a new workspace for your team.
+              Configurar um novo espaço de trabalho para sua equipe.
               </p>
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                    Project name *
+                    Nome *
                   </label>
                   <input
                     {...register('name')}
-                    placeholder="e.g. Website Redesign"
+                    placeholder="Nome do projeto"
                     className={cn(
                       'w-full rounded-lg border bg-secondary/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 outline-none transition-all',
                       'focus:border-primary/60 focus:ring-2 focus:ring-primary/20',
@@ -71,19 +71,19 @@ export default function NewProjectPage() {
 
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                    Description
+                    Descrição
                   </label>
                   <textarea
                     {...register('description')}
                     rows={3}
-                    placeholder="What is this project about?"
+                    placeholder="Descreva este projecto"
                     className="w-full resize-none rounded-lg border border-border/60 bg-secondary/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 outline-none transition-all focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
 
                 <div>
                   <label className="mb-2 block text-xs font-medium text-muted-foreground">
-                    Color
+                    Cor
                   </label>
                   <div className="flex gap-2 flex-wrap">
                     {PROJECT_COLORS.map((color) => (
@@ -108,7 +108,7 @@ export default function NewProjectPage() {
 
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                    Due date (optional)
+                    Prazo (opcional)
                   </label>
                   <input
                     {...register('dueDate')}
@@ -122,7 +122,7 @@ export default function NewProjectPage() {
                     href={ROUTES.projects}
                     className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
                   >
-                    <ArrowLeft size={13} /> Cancel
+                    <ArrowLeft size={13} /> Cancelar
                   </Link>
                   <button
                     type="submit"
@@ -130,7 +130,7 @@ export default function NewProjectPage() {
                     className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-all"
                   >
                     {isSubmitting && <Loader2 size={13} className="animate-spin" />}
-                    Create project
+                    Criar Projeto
                   </button>
                 </div>
               </form>

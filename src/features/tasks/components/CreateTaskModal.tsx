@@ -54,7 +54,7 @@ export function CreateTaskModal({ open, onClose, onCreate, projectId }: CreateTa
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
-              <h2 className="text-sm font-semibold text-foreground">Create Task</h2>
+              <h2 className="text-sm font-semibold text-foreground">Criar Tarefa</h2>
               <button
                 onClick={handleClose}
                 className="flex h-6 w-6 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
@@ -66,10 +66,10 @@ export function CreateTaskModal({ open, onClose, onCreate, projectId }: CreateTa
             <form onSubmit={handleSubmit(onSubmit)} className="p-5 space-y-4">
               {/* Title */}
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Title *</label>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Título *</label>
                 <input
                   {...register('title')}
-                  placeholder="What needs to be done?"
+                  placeholder="o que deve ser feito?"
                   autoFocus
                   className={cn(
                     'w-full rounded-lg border bg-secondary/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 outline-none transition-all',
@@ -82,11 +82,11 @@ export function CreateTaskModal({ open, onClose, onCreate, projectId }: CreateTa
 
               {/* Description */}
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Description</label>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Descrição</label>
                 <textarea
                   {...register('description')}
                   rows={3}
-                  placeholder="Add more details…"
+                  placeholder="Adicione mais detalhes…"
                   className="w-full resize-none rounded-lg border border-border/60 bg-secondary/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 outline-none transition-all focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
                 />
               </div>
@@ -94,15 +94,15 @@ export function CreateTaskModal({ open, onClose, onCreate, projectId }: CreateTa
               {/* Row */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Priority</label>
+                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Prioridade</label>
                   <select
                     {...register('priority')}
                     className="w-full rounded-lg border border-border/60 bg-secondary/50 px-3 py-2 text-sm text-foreground outline-none transition-all focus:border-primary/60"
                   >
-                    <option value="urgent">🔴 Urgent</option>
-                    <option value="high">🟠 High</option>
-                    <option value="medium">🔵 Medium</option>
-                    <option value="low">🟢 Low</option>
+                    <option value="urgent">🔴 Urgente</option>
+                    <option value="high">🟠 Alta</option>
+                    <option value="medium">🔵 Média</option>
+                    <option value="low">🟢 Baixa</option>
                   </select>
                 </div>
                 <div>
@@ -118,17 +118,17 @@ export function CreateTaskModal({ open, onClose, onCreate, projectId }: CreateTa
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Label</label>
+                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Etiqueta</label>
                   <select
                     {...register('label')}
                     className="w-full rounded-lg border border-border/60 bg-secondary/50 px-3 py-2 text-sm text-foreground outline-none transition-all focus:border-primary/60"
                   >
-                    <option value="">No label</option>
+                    <option value="">Sem etiqueta</option>
                     {TASK_LABELS.map((l) => <option key={l} value={l}>{l}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Due date</label>
+                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Data prazo</label>
                   <input
                     {...register('dueDate')}
                     type="date"
@@ -144,7 +144,7 @@ export function CreateTaskModal({ open, onClose, onCreate, projectId }: CreateTa
                   onClick={handleClose}
                   className="flex-1 rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
                 >
-                  Cancel
+                  Cancelar
                 </button>
                 <button
                   type="submit"
@@ -152,7 +152,7 @@ export function CreateTaskModal({ open, onClose, onCreate, projectId }: CreateTa
                   className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-all"
                 >
                   {isSubmitting && <Loader2 size={13} className="animate-spin" />}
-                  Create task
+                  Criar tarefa
                 </button>
               </div>
             </form>

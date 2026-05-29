@@ -1,18 +1,18 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Plus, Folder, MoreHorizontal, Trash2, Edit, ArrowRight } from 'lucide-react'
+import { Plus, Folder, Trash2, ArrowRight } from 'lucide-react'
+
 import { AppShell } from '@/components/layout/AppShell'
 import { TopBar } from '@/components/layout/TopBar'
-import { Avatar, AvatarGroup } from '@/components/shared/Avatar'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { ProjectCardSkeleton } from '@/components/shared/Skeleton'
 import { useProjects } from '@/features/projects/hooks/useProjects'
+
 import { useProjectsStore } from '@/stores/projects.store'
 import { ROUTES } from '@/constants'
-import { cn, calcProgress, formatDate } from '@/utils'
+import { calcProgress, formatDate } from '@/utils'
 
 export default function ProjectsPage() {
   const { projects, loading, delete: deleteProject } = useProjects()
@@ -23,13 +23,13 @@ export default function ProjectsPage() {
       <div className="flex flex-1 flex-col overflow-hidden">
         <TopBar
           title="Projects"
-          breadcrumbs={[{ label: 'Projects' }]}
+          breadcrumbs={[{ label: 'Projetos' }]}
           actions={
             <Link
               href={ROUTES.newProject}
               className="flex h-7 items-center gap-1.5 rounded-md border border-border/60 bg-secondary/50 px-2.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
             >
-              <Plus size={11} /> New project
+              <Plus size={11} /> Novo projeto
             </Link>
           }
         />
@@ -37,9 +37,9 @@ export default function ProjectsPage() {
         <div className="flex-1 overflow-auto p-6">
           <div className="mb-5 flex items-end justify-between">
             <div>
-              <h1 className="text-base font-semibold text-foreground">All Projects</h1>
+              <h1 className="text-base font-semibold text-foreground">Todos Projetos</h1>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {projects.length} project{projects.length !== 1 ? 's' : ''}
+                {projects.length} projeto{projects.length !== 1 ? 's' : ''}
               </p>
             </div>
           </div>
@@ -58,7 +58,7 @@ export default function ProjectsPage() {
                   href={ROUTES.newProject}
                   className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-all"
                 >
-                  <Plus size={12} /> Create project
+                  <Plus size={12} /> Criar projeto
                 </Link>
               }
             />
@@ -95,7 +95,7 @@ export default function ProjectsPage() {
                             </h3>
                             {project.dueDate && (
                               <p className="text-[10px] text-muted-foreground">
-                                Due {formatDate(project.dueDate)}
+                                Datas {formatDate(project.dueDate)}
                               </p>
                             )}
                           </div>
@@ -118,7 +118,7 @@ export default function ProjectsPage() {
                       {/* Progress */}
                       <div className="mb-3">
                         <div className="mb-1.5 flex items-center justify-between">
-                          <span className="text-[10px] text-muted-foreground">Progress</span>
+                          <span className="text-[10px] text-muted-foreground">Progresso</span>
                           <span className="text-[10px] font-medium text-foreground">{pct}%</span>
                         </div>
                         <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
@@ -131,13 +131,13 @@ export default function ProjectsPage() {
 
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] text-muted-foreground">
-                          {ptasks.length} tasks · {done} done
+                          {ptasks.length} tarefas · {done} completas
                         </span>
                         <Link
                           href={ROUTES.kanban(project.id)}
                           className="flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors"
                         >
-                          Open board <ArrowRight size={11} />
+                          Abrir quadro <ArrowRight size={11} />
                         </Link>
                       </div>
                     </div>
@@ -154,7 +154,7 @@ export default function ProjectsPage() {
                   <Plus size={18} className="text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
                 <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-                  New Project
+                  Novo projeto
                 </span>
               </Link>
             </div>

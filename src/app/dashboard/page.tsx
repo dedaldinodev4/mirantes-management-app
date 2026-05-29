@@ -34,43 +34,43 @@ export default function DashboardPage() {
 
   const metrics = [
     {
-      label: 'Projects',
+      label: 'Projetos',
       value: totalProjects,
       icon: Folder,
       color: 'text-indigo-400',
       bg: 'bg-indigo-500/10',
       accent: '#6366f1',
-      delta: '+1 this month',
+      delta: '+1 este mês',
       deltaUp: true,
     },
     {
-      label: 'Completed',
+      label: 'Completo',
       value: doneTasks,
       icon: CheckCircle2,
       color: 'text-emerald-400',
       bg: 'bg-emerald-500/10',
       accent: '#22c55e',
-      delta: '+3 this week',
+      delta: '+3 esta semana',
       deltaUp: true,
     },
     {
-      label: 'In Progress',
+      label: 'Em Progresso',
       value: inProgressTasks,
       icon: Clock,
       color: 'text-amber-400',
       bg: 'bg-amber-500/10',
       accent: '#f59e0b',
-      delta: 'Across projects',
+      delta: 'entre projetos',
       deltaUp: null,
     },
     {
-      label: 'Overdue',
+      label: 'Em atraso',
       value: overdueTasks,
       icon: AlertCircle,
       color: overdueTasks > 0 ? 'text-red-400' : 'text-muted-foreground',
       bg: overdueTasks > 0 ? 'bg-red-500/10' : 'bg-secondary',
       accent: overdueTasks > 0 ? '#ef4444' : '#666',
-      delta: overdueTasks > 0 ? 'Needs attention' : 'All on track',
+      delta: overdueTasks > 0 ? 'Precisa de atenção' : 'Todos no caminho certo',
       deltaUp: overdueTasks > 0 ? false : null,
     },
   ]
@@ -95,7 +95,7 @@ export default function DashboardPage() {
             className="flex h-7 items-center gap-1.5 rounded-md border border-border/60 bg-secondary/50 px-2.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
           >
             <Plus size={11} />
-            New project
+            Novo projeto
           </Link>
         }
       />
@@ -145,12 +145,12 @@ export default function DashboardPage() {
           {/* Projects */}
           <motion.div custom={4} initial="hidden" animate="show" variants={fadeUp}>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-medium text-foreground">Recent Projects</h2>
+              <h2 className="text-sm font-medium text-foreground">Projetos Recentes</h2>
               <Link
                 href={ROUTES.projects}
                 className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
-                View all <ArrowRight size={11} />
+                Ver todos <ArrowRight size={11} />
               </Link>
             </div>
 
@@ -219,14 +219,14 @@ export default function DashboardPage() {
           {/* Activity */}
           <motion.div custom={5} initial="hidden" animate="show" variants={fadeUp}>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-medium text-foreground">Recent Activity</h2>
+              <h2 className="text-sm font-medium text-foreground">Atividades Recentes</h2>
               <Activity size={13} className="text-muted-foreground" />
             </div>
 
             <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
               {activities.length === 0 ? (
                 <div className="p-6 text-center text-xs text-muted-foreground">
-                  No recent activity
+                  Sem atividades recentes
                 </div>
               ) : (
                 activities.slice(0, 6).map((activity, i) => (
@@ -252,7 +252,7 @@ export default function DashboardPage() {
             {members.length > 0 && (
               <>
                 <div className="mb-3 mt-5 flex items-center justify-between">
-                  <h2 className="text-sm font-medium text-foreground">Team</h2>
+                  <h2 className="text-sm font-medium text-foreground">Membros</h2>
                 </div>
                 <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
                   {members.map((member) => (

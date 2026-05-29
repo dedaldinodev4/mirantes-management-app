@@ -53,7 +53,7 @@ export function TopBar({ title, breadcrumbs, actions, className }: TopBarProps) 
         className="flex h-7 items-center gap-2 rounded-md border border-border/60 bg-secondary/50 px-2.5 text-xs text-muted-foreground hover:border-border hover:bg-secondary hover:text-foreground transition-all"
       >
         <Search size={11} />
-        <span className="hidden sm:inline">Search…</span>
+        <span className="hidden sm:inline">Buscar…</span>
         <kbd className="hidden rounded border border-border bg-secondary px-1 text-[10px] font-mono sm:inline">
           ⌘K
         </kbd>
@@ -65,7 +65,7 @@ export function TopBar({ title, breadcrumbs, actions, className }: TopBarProps) 
         className="flex h-7 items-center gap-1.5 rounded-md bg-primary px-2.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-all"
       >
         <Plus size={12} />
-        <span>New task</span>
+        <span>Nova Tarefa</span>
       </button>
     </header>
   )

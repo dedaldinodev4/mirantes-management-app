@@ -3,6 +3,7 @@
 import { AppShell } from '@/components/layout/AppShell'
 import { TopBar } from '@/components/layout/TopBar'
 import { Avatar } from '@/components/shared/Avatar'
+
 import { useAuthStore } from '@/stores/auth.store'
 import { useProjectsStore } from '@/stores/projects.store'
 import { formatDate } from '@/utils'
@@ -36,9 +37,9 @@ export default function ProfilePage() {
             {/* Stats */}
             <div className="grid grid-cols-3 gap-3">
               {[
-                { label: 'Projects', value: projects.length },
-                { label: 'Tasks assigned', value: myTasks.length },
-                { label: 'Completed', value: doneTasks.length },
+                { label: 'Projetos', value: projects.length },
+                { label: 'Tarefas atribuídas', value: myTasks.length },
+                { label: 'Completos', value: doneTasks.length },
               ].map((s) => (
                 <div key={s.label} className="rounded-xl border border-border bg-card p-4 text-center">
                   <div className="text-2xl font-semibold text-foreground">{s.value}</div>

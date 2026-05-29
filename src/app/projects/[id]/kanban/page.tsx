@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
+
 import {
   DndContext, DragOverlay, PointerSensor, useSensor, useSensors,
   type DragStartEvent, type DragEndEvent, type DragOverEvent, closestCorners,
@@ -77,20 +77,20 @@ export default function KanbanPage() {
         <TopBar
           title={project?.name ?? 'Kanban'}
           breadcrumbs={[
-            { label: 'Projects', href: ROUTES.projects },
+            { label: 'Projetos', href: ROUTES.projects },
             { label: project?.name ?? '…' },
-            { label: 'Board' },
+            { label: 'Quadro' },
           ]}
           actions={
             <div className="flex items-center gap-2">
               <button className="flex h-7 items-center gap-1.5 rounded-md border border-border/60 bg-secondary/50 px-2.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-all">
-                <Filter size={11} /> Filter
+                <Filter size={11} /> Filtro
               </button>
               <button
                 onClick={() => setCreateModalOpen(true)}
                 className="flex h-7 items-center gap-1.5 rounded-md border border-border/60 bg-secondary/50 px-2.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
               >
-                <Plus size={11} /> Task
+                <Plus size={11} /> Tarefa
               </button>
             </div>
           }
@@ -102,7 +102,7 @@ export default function KanbanPage() {
             <div className="h-2 w-2 rounded-full" style={{ background: project.color }} />
             <span className="text-xs font-medium text-foreground">{project.name}</span>
             <span className="text-xs text-muted-foreground">—</span>
-            <span className="text-xs text-muted-foreground">{tasks.length} tasks</span>
+            <span className="text-xs text-muted-foreground">{tasks.length} tarefas</span>
             <div className="ml-auto flex items-center gap-2">
               <div className="h-1 w-24 rounded-full bg-secondary overflow-hidden">
                 <div

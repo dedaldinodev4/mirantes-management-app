@@ -71,7 +71,7 @@ export function TaskCard({ task, onClick, onDelete, isDragging = false }: TaskCa
           )}
           {overdue && (
             <span className="inline-flex items-center rounded bg-red-500/10 px-1.5 py-0.5 text-[10px] font-medium text-red-400">
-              Overdue
+              Prazo atrasado
             </span>
           )}
         </div>
@@ -100,7 +100,7 @@ export function TaskCard({ task, onClick, onDelete, isDragging = false }: TaskCa
       {/* Delete button */}
       {onDelete && (
         <button
-          onClick={(e) => { e.stopPropagation(); if (confirm('Delete task?')) onDelete() }}
+          onClick={(e) => { e.stopPropagation(); if (confirm('Apagar tarefa?')) onDelete() }}
           className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded text-muted-foreground/30 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all"
         >
           <Trash2 size={10} />
