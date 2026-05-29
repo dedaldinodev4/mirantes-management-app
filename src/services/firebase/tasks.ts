@@ -9,8 +9,7 @@ import {
   where,
   serverTimestamp,
   writeBatch,
-  Timestamp,
-  getCountFromServer,
+  Timestamp
 } from 'firebase/firestore'
 import { db } from './config'
 import { COLLECTIONS } from '@/constants'
@@ -22,16 +21,6 @@ export async function createTask(
   input: CreateTaskInput,
   reporterId: string,
 ): Promise<string> {
-  // Simple count-based order — no compound index needed
-  const colSnap = await getCountFromServer(
-    query(
-      collection(db, COLLECTIONS.tasks),
-      where('projectId', '==', input.projectId),
-      where('status', '==', input.status),
-    ),
-  )
-  const order = colSnap.data().count
-
   const ref = await addDoc(collection(db, COLLECTIONS.tasks), {
     title: input.title,
     description: input.description ?? '',
@@ -43,12 +32,12 @@ export async function createTask(
     reporterId,
     dueDate: input.dueDate ? Timestamp.fromDate(new Date(input.dueDate)) : null,
     completedAt: null,
-    order,
+    // timestamp-based order: always appends to end, no extra read needed
+    order: Date.now(),
     attachments: [],
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   })
-
   return ref.id
 }
 
@@ -57,41 +46,29 @@ export async function getProjectTasks(
   projectId: string,
   filters?: TaskFilters,
 ): Promise<Task[]> {
-  const q = query(
-    collection(db, COLLECTIONS.tasks),
-    where('projectId', '==', projectId),
+  const snap = await getDocs(
+    query(
+      collection(db, COLLECTIONS.tasks),
+      where('projectId', '==', projectId),
+    ),
   )
-
-  const snap = await getDocs(q)
   let tasks = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Task)
-
-  // Sort client-side to avoid needing composite indexes
   tasks.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
 
-  // Client-side filtering
   if (filters) {
-    if (filters.status?.length) {
+    if (filters.status?.length)
       tasks = tasks.filter((t) => filters.status!.includes(t.status))
-    }
-    if (filters.priority?.length) {
+    if (filters.priority?.length)
       tasks = tasks.filter((t) => filters.priority!.includes(t.priority))
-    }
-    if (filters.assigneeId?.length) {
-      tasks = tasks.filter(
-        (t) => t.assigneeId && filters.assigneeId!.includes(t.assigneeId),
-      )
-    }
+    if (filters.assigneeId?.length)
+      tasks = tasks.filter((t) => t.assigneeId && filters.assigneeId!.includes(t.assigneeId))
     if (filters.search) {
-      const sq = filters.search.toLowerCase()
+      const q = filters.search.toLowerCase()
       tasks = tasks.filter(
-        (t) =>
-          t.title.toLowerCase().includes(sq) ||
-          t.description.toLowerCase().includes(sq),
+        (t) => t.title.toLowerCase().includes(q) || t.description.toLowerCase().includes(q),
       )
     }
-    if (filters.overdue) {
-      tasks = tasks.filter((t) => isOverdue(t.dueDate))
-    }
+    if (filters.overdue) tasks = tasks.filter((t) => isOverdue(t.dueDate))
   }
 
   return tasks
@@ -102,17 +79,8 @@ export async function updateTask(
   taskId: string,
   input: Partial<UpdateTaskInput>,
 ): Promise<void> {
-  const updates: Record<string, unknown> = {
-    ...input,
-    updatedAt: serverTimestamp(),
-  }
-
-  // Set completedAt when moving to Done
-  if (input.status === 'Done') {
-    updates.completedAt = serverTimestamp()
-  }
-
-  // Prevent reverting Done without confirmation (handled at UI layer)
+  const updates: Record<string, unknown> = { ...input, updatedAt: serverTimestamp() }
+  if (input.status === 'Done') updates.completedAt = serverTimestamp()
   await updateDoc(doc(db, COLLECTIONS.tasks, taskId), updates)
 }
 
@@ -127,11 +95,7 @@ export async function moveTask(
     order: newOrder,
     updatedAt: serverTimestamp(),
   }
-
-  if (newStatus === 'Done') {
-    updates.completedAt = serverTimestamp()
-  }
-
+  if (newStatus === 'Done') updates.completedAt = serverTimestamp()
   await updateDoc(doc(db, COLLECTIONS.tasks, taskId), updates)
 }
 

@@ -13,7 +13,11 @@ import {
   updatePassword,
 } from 'firebase/auth'
 import { 
-  doc, setDoc, getDoc, updateDoc, serverTimestamp 
+  doc, setDoc, getDoc, updateDoc, serverTimestamp, 
+  getDocs,
+  query,
+  collection,
+  where
 } from 'firebase/firestore'
 import { auth, db } from './config'
 import { COLLECTIONS } from '@/constants'
@@ -30,7 +34,7 @@ export async function register({ displayName, email, password }: RegisterInput) 
   // Create user document in Firestore
   await setDoc(doc(db, COLLECTIONS.users, credential.user.uid), {
     uid: credential.user.uid,
-    email,
+    email: email.toLowerCase().trim(),
     displayName,
     photoURL: null,
     createdAt: serverTimestamp(),
@@ -105,8 +109,13 @@ export async function changePassword(currentPassword: string, newPassword: strin
 
 //* Get Multiple User Profiles *//
 export async function getUserProfiles(uids: string[]): Promise<User[]> {
-  const results = await Promise.all(uids.map((uid) => getUserProfile(uid)))
-  return results.filter(Boolean) as User[]
+  if (!uids.length) return []
+  const snaps = await Promise.all(
+    uids.map((uid) => getDoc(doc(db, COLLECTIONS.users, uid))),
+  )
+  return snaps
+    .filter((s) => s.exists())
+    .map((s) => ({ uid: s.id, ...s.data() }) as User)
 }
 
 
@@ -114,7 +123,22 @@ export async function getUserProfiles(uids: string[]): Promise<User[]> {
 export async function getUserProfile(uid: string): Promise<User | null> {
   const snap = await getDoc(doc(db, COLLECTIONS.users, uid))
   if (!snap.exists()) return null
-  return snap.data() as User
+  return { uid: snap.id, ...snap.data() } as User
+}
+
+
+// Requires email field to be stored lowercase (guaranteed by register/signInWithGoogle)
+export async function findUserByEmail(email: string): Promise<User | null> {
+  const normalised = email.toLowerCase().trim()
+  const snap = await getDocs(
+    query(
+      collection(db, COLLECTIONS.users),
+      where('email', '==', normalised),
+    ),
+  )
+  if (snap.empty) return null
+  const d = snap.docs[0]
+  return { uid: d.id, ...d.data() } as User
 }
 
 //* Auth State Observer *//

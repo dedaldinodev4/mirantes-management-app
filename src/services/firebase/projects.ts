@@ -13,6 +13,7 @@ import {
   arrayUnion,
   arrayRemove,
   writeBatch,
+  Timestamp,
 } from 'firebase/firestore'
 import { db } from './config'
 import { COLLECTIONS } from '@/constants'
@@ -31,32 +32,30 @@ export async function createProject(
     coverURL: null,
     ownerId,
     memberIds: [ownerId, ...(input.memberIds ?? [])],
-    dueDate: input.dueDate ? new Date(input.dueDate) : null,
+    dueDate: input.dueDate ? Timestamp.fromDate(new Date(input.dueDate)) : null,
     archived: false,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   })
-
   return ref.id
 }
 
 //* Get User Projects *//
 export async function getUserProjects(userId: string): Promise<Project[]> {
-  const q = query(
-    collection(db, COLLECTIONS.projects),
-    where('memberIds', 'array-contains', userId),
+  const snap = await getDocs(
+    query(
+      collection(db, COLLECTIONS.projects),
+      where('memberIds', 'array-contains', userId),
+    ),
   )
-  const snap = await getDocs(q)
-  const projects = snap.docs
+  return snap.docs
     .map((d) => ({ id: d.id, ...d.data() }) as Project)
     .filter((p) => !p.archived)
-    // Sort client-side to avoid needing composite index
     .sort((a, b) => {
       const ta = (a.createdAt as any)?.toMillis?.() ?? 0
       const tb = (b.createdAt as any)?.toMillis?.() ?? 0
       return tb - ta
     })
-  return projects
 }
 
 //* Get Project *//
@@ -84,10 +83,8 @@ export async function deleteProject(
 ): Promise<void> {
   const project = await getProject(projectId)
   if (!project) throw new Error('Project not found')
-  if (project.ownerId !== requesterId) {
+  if (project.ownerId !== requesterId)
     throw new Error('Only the project owner can delete this project')
-  }
-  // Cascade: remove all tasks belonging to this project
   await deleteProjectTasks(projectId)
   await deleteDoc(doc(db, COLLECTIONS.projects, projectId))
 }
@@ -111,23 +108,11 @@ export async function removeProjectMember(
 ): Promise<void> {
   const project = await getProject(projectId)
   if (!project) throw new Error('Project not found')
-  if (project.ownerId !== requesterId) {
+  if (project.ownerId !== requesterId)
     throw new Error('Only the project owner can remove members')
-  }
   await updateDoc(doc(db, COLLECTIONS.projects, projectId), {
     memberIds: arrayRemove(userId),
     updatedAt: serverTimestamp(),
   })
 }
 
-//* Find user by email *//
-export async function findUserByEmail(email: string) {
-  
-  const q = query(
-    collection(db, COLLECTIONS.users),
-    where('email', '==', email.toLowerCase().trim()),
-  )
-  const snap = await getDocs(q)
-  if (snap.empty) return null
-  return { uid: snap.docs[0].id, ...snap.docs[0].data() }
-}
