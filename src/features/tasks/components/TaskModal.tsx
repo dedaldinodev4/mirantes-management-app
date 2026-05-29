@@ -18,6 +18,7 @@ import { createComment, getTaskComments, deleteComment } from '@/services/fireba
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll'
 import { useEscapeKey } from '../hooks/useEscapeKey'
 import { useAuthStore } from '@/stores/auth.store'
+import { TaskComment } from '@/types'
 
 interface TaskModalProps {
   taskId: string | null
@@ -35,7 +36,7 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
   const [comment, setComment] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
-  const [comments, setComments] = useState<Comment[]>([])
+  const [comments, setComments] = useState<TaskComment[]>([])
   const [loadingComments, setLoadingComments] = useState(false)
   const [submittingComment, setSubmittingComment] = useState(false)
   const loadedForRef = useRef<string | null>(null)
@@ -63,9 +64,6 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
       .catch(() => { }) // non-critical
       .finally(() => setLoadingComments(false))
   }, [open, taskId])
-
-
-
 
 
   // Load comments when modal opens
@@ -130,7 +128,7 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
     if (!content || !firebaseUser || !task) return
 
     // Optimistic append
-    const optimistic: Comment = {
+    const optimistic: TaskComment = {
       id: `temp-${Date.now()}`,
       taskId: task.id,
       projectId: task.projectId,
@@ -150,8 +148,8 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
         firebaseUser.uid,
       )
       // Replace temp with real
-      setComments((prev) =>
-        prev.map((c) => (c.id === optimistic.id ? saved : c)),
+      setComments((prev : any) =>
+        prev.map((c: any) => (c.id === optimistic.id ? saved : c)),
       )
     } catch (err: any) {
       // Rollback

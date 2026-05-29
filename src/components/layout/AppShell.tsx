@@ -16,11 +16,11 @@ import { cn, getInitials } from '@/utils'
 import { CommandPalette } from '@/features/dashboard/components/CommandPalette'
 
 const NAV_ITEMS = [
-  { href: ROUTES.dashboard, icon: LayoutDashboard, label: 'Dashboard' },
-  { href: ROUTES.projects, icon: Folder, label: 'Projetos' },
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/projects', icon: Folder, label: 'Projetos' },
   { href: '/notifications', icon: Bell, label: 'Notificações', badge: 3 },
   { href: '/members', icon: Users, label: 'Membros' },
-  { href: ROUTES.settings, icon: Settings, label: 'Configurações' },
+  { href: '/settings', icon: Settings, label: 'Configurações' },
 ]
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -92,7 +92,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={item.href as any}
                 className={cn(
                   'flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] transition-all relative',
                   active
@@ -130,7 +130,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {projects.slice(0, 5).map((project) => (
                 <Link
                   key={project.id}
-                  href={ROUTES.kanban(project.id)}
+                  href={ROUTES.kanban(project.id) as any}
                   className={cn(
                     'flex items-center gap-2 rounded-md px-2 py-1 text-[12px] text-muted-foreground hover:bg-secondary hover:text-foreground transition-all',
                     pathname.includes(project.id) && 'text-foreground bg-secondary',

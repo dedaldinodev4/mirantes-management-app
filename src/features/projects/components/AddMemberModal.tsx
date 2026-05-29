@@ -101,7 +101,7 @@ export function AddMemberModal({ open, onClose, project, onMembersChanged }: Add
           onClick: async () => {
             setRemovingId(userId)
             try {
-              await removeProjectMember(project.id, userId, firebaseUser.uid)
+              await removeProjectMember(project.id, userId, firebaseUser ? firebaseUser.uid : '')
               setMembers((prev) => prev.filter((m) => m.uid !== userId))
               toast.success('Membro removido')
               onMembersChanged?.()

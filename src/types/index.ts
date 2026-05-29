@@ -85,6 +85,8 @@ export interface Comment {
   edited: boolean
 }
 
+export interface TaskComment extends Comment {}
+
 export interface CommentWithAuthor extends Comment {
   author: User
 }

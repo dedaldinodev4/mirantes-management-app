@@ -84,7 +84,7 @@ export function CommandPalette() {
     icon: <div className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: p.color }} />,
     label: p.name,
     sub: 'Projeto',
-    action: () => { router.push(ROUTES.kanban(p.id)); closeCommandPalette() },
+    action: () => { router.push(ROUTES.kanban(p.id) as any); closeCommandPalette() },
     section: 'Projetos',
   }))
 

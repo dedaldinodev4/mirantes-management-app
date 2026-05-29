@@ -12,12 +12,12 @@ import {
 } from 'firebase/firestore'
 import { db } from './config'
 import { COLLECTIONS } from '@/constants'
-import type { Comment, CreateCommentInput } from '@/types'
+import type { TaskComment, Comment, CreateCommentInput } from '@/types'
 
 export async function createComment(
   input: CreateCommentInput,
   authorId: string,
-): Promise<string> {
+): Promise<TaskComment> {
   const now = Timestamp.now()
   const ref = await addDoc(collection(db, COLLECTIONS.comments), {
     taskId: input.taskId,
@@ -38,7 +38,7 @@ export async function createComment(
     edited: false,
     createdAt: now,
     updatedAt: now,
-  } as Comment
+  } as TaskComment
 }
 
 export async function getTaskComments(taskId: string): Promise<Comment[]> {
