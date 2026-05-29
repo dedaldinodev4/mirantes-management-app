@@ -16,6 +16,7 @@ import { calcProgress, formatDate } from '@/utils'
 import { toast } from 'sonner'
 import { useState } from 'react'
 import { AddMemberModal } from '@/features/projects/components/AddMemberModal'
+import type { Project } from '@/types'
 
 export default function ProjectsPage() {
   const { projects, loading, delete: deleteProject } = useProjects()
@@ -173,7 +174,7 @@ export default function ProjectsPage() {
                           {ptasks.length} tarefas · {done} completas
                         </span>
                         <Link
-                          href={ROUTES.kanban(project.id)}
+                          href={`/projects/${project.id}/kanban`}
                           className="flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors"
                         >
                           Abrir quadro <ArrowRight size={11} />

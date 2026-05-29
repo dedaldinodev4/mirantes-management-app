@@ -178,7 +178,7 @@ export default function DashboardPage() {
                   return (
                     <Link
                       key={project.id}
-                      href={ROUTES.kanban(project.id)}
+                      href={`/projects/${project.id}/kanban`}
                       className="group flex items-center gap-4 rounded-xl border border-border bg-card px-4 py-3.5 hover:border-border/80 hover:bg-card/80 transition-all"
                     >
                       <div

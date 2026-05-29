@@ -32,7 +32,7 @@ export default function NewProjectPage() {
   const onSubmit = async (data: ProjectFormData) => {
     try {
       const id = await create({ ...data, color: data.color as any })
-      if (id) router.push(ROUTES.kanban(id))
+      if (id) router.push(`/projects/${id}/kanban`)
     } catch {
       // error already toasted inside create()
     }
