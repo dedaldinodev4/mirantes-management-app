@@ -18,7 +18,7 @@ import { getFirebaseError } from '@/utils'
 
 export function useAuth() {
   const router = useRouter()
-  const { firebaseUser, profile, loading, initialized, setProfile } = useAuthStore()
+  const { firebaseUser, profile, loading, initialized, setProfile, reset } = useAuthStore()
 
   const handleLogin = async (input: LoginInput) => {
     try {
@@ -91,7 +91,9 @@ export function useAuth() {
   const handleChangePassword = async (currentPassword: string, newPassword: string) => {
     try {
       await changePassword(currentPassword, newPassword)
+      reset()
       toast.success('Senha alterada com sucesso!')
+      router.push(ROUTES.dashboard)
     } catch (err: any) {
       toast.error(getFirebaseError(err))
       throw err

@@ -120,11 +120,10 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
       setComment('')
       await loadComments()
       toast.success('Comentário postado')
+      setSubmittingComment(false)
     } catch (err: any) {
       toast.error('Falhar ao postar comentário', { description: err?.message })
-    } finally {
-      setSubmittingComment(false)
-    }
+    } 
   }
 
   const handleDeleteComment = async (commentId: string) => {
@@ -195,7 +194,7 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
                 <div className="flex-1 overflow-y-auto p-5 space-y-5">
                   {/* Description */}
                   <div>
-                    <h3 className="mb-2 text-[11px] font-medium uppercase tracking-widest text-muted-foreground/60">Description</h3>
+                    <h3 className="mb-2 text-[11px] font-medium uppercase tracking-widest text-muted-foreground/60">Descrição</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">
                       {task.description || 'Sem descrição.'}
                     </p>
@@ -313,25 +312,25 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
 
                 {/* Sidebar */}
                 <div className="hidden sm:flex w-44 flex-shrink-0 flex-col border-l border-border bg-secondary/20 p-4 space-y-4 overflow-y-auto">
-                  <MetaRow icon={<Flag size={12} />} label="Priority">
+                  <MetaRow icon={<Flag size={12} />} label="Prioridade">
                     <span className={cn('text-xs', PRIORITY_CONFIG[task.priority].color)}>
                       {PRIORITY_CONFIG[task.priority].label}
                     </span>
                   </MetaRow>
-                  <MetaRow icon={<Calendar size={12} />} label="Due date">
+                  <MetaRow icon={<Calendar size={12} />} label="Prazo">
                     <span className={cn('text-xs', dueLabel?.urgent ? 'text-red-400' : 'text-muted-foreground')}>
                       {task.dueDate ? formatDate(task.dueDate) : '—'}
                     </span>
                   </MetaRow>
-                  <MetaRow icon={<User size={12} />} label="Assignee">
-                    <span className="text-xs text-muted-foreground">Unassigned</span>
+                  <MetaRow icon={<User size={12} />} label="Responsável">
+                    <span className="text-xs text-muted-foreground">Não atribuida</span>
                   </MetaRow>
-                  <MetaRow icon={<Tag size={12} />} label="Label">
+                  <MetaRow icon={<Tag size={12} />} label="Etiqueta">
                     {task.label
                       ? <span className={cn('text-xs font-medium', labelColor.text)}>{task.label}</span>
                       : <span className="text-xs text-muted-foreground">—</span>}
                   </MetaRow>
-                  <MetaRow icon={<MessageSquare size={12} />} label="Comments">
+                  <MetaRow icon={<MessageSquare size={12} />} label="Comentários">
                     <span className="text-xs text-muted-foreground">{comments.length}</span>
                   </MetaRow>
                 </div>
@@ -345,13 +344,13 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
                   className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-60 transition-all"
                 >
                   {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
-                  {deleting ? 'Deleting…' : 'Delete task'}
+                  {deleting ? 'Apagando...' : 'Apagar tarefa'}
                 </button>
                 <button
                   onClick={onClose}
                   className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
                 >
-                  Close
+                  Fechar
                 </button>
               </div>
             </motion.div>
