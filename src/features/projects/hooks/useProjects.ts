@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth.store'
 import { useProjectsStore } from '@/stores/projects.store'
@@ -10,29 +10,34 @@ import {
   updateProject,
   deleteProject,
   addProjectMember,
-  removeProjectMember,
-  findUserByEmail,
+  removeProjectMember
 } from '@/services/firebase/projects'
+import { findUserByEmail } from '@/services/firebase/auth'
 import type { CreateProjectInput, UpdateProjectInput } from '@/types'
 
 export function useProjects() {
   const { firebaseUser } = useAuthStore()
   const { projects, setProjects, removeProject, loading, setLoading } = useProjectsStore()
+  const loadingRef = useRef(false)
 
   const load = useCallback(async () => {
-    if (!firebaseUser) return
+    if (!firebaseUser || loadingRef.current) return
+    loadingRef.current = true
     try {
       setLoading(true)
       const data = await getUserProjects(firebaseUser.uid)
       setProjects(data)
-    } catch {
-      toast.error('Falha ao carregar projetos')
+    } catch (err: any) {
+      toast.error('Falha ao carregar projetos', { description: err?.message })
     } finally {
       setLoading(false)
+      loadingRef.current = false
     }
   }, [firebaseUser])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    load()
+  }, [load])
 
   const handleCreate = async (input: CreateProjectInput) => {
     if (!firebaseUser) return
@@ -70,23 +75,25 @@ export function useProjects() {
   }
 
   
-  const handleAddMember = async (projectId: string, email: string): Promise<void> => {
+  const handleAddMember = async (projectId: string, email: string): Promise<boolean> => {
     try {
       const user = await findUserByEmail(email)
       if (!user) {
         toast.error('Usuário não encontrado', { description: `Conta não encontrada ${email}` })
-        return
+        return false
       }
       const project = projects.find((p) => p.id === projectId)
       if (project?.memberIds.includes(user.uid as string)) {
-        toast.warning('Membro', { description: `${email} já é membro do projeto` })
-        return
+        toast.warning('Membro existente', { description: `${email} já é membro do projeto` })
+        return false
       }
       await addProjectMember(projectId, user.uid as string)
       toast.success('Membro adicionado!!', { description: (user as any).displayName ?? email })
       await load()
+      return true
     } catch (err: any) {
       toast.error('Falha ao adicionar o membro', { description: err?.message })
+      return false
     }
   }
 

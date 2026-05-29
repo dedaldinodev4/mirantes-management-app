@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth.store'
 import { useProjectsStore } from '@/stores/projects.store'
@@ -26,19 +26,26 @@ export function useTasks(projectId: string) {
   } = useProjectsStore()
 
   const projectTasks = tasks.filter((t) => t.projectId === projectId)
+  const loadingRef = useRef(false)
 
   const load = useCallback(async () => {
-    if (!projectId) return
+    if (!projectId || loadingRef.current) return
+    loadingRef.current = true
     try {
       const data = await getProjectTasks(projectId)
       const otherTasks = tasks.filter((t) => t.projectId !== projectId)
       setTasks([...otherTasks, ...data])
     } catch (err: any) {
-      toast.error('Failed to load tasks', { description: err?.message })
+      toast.error('Falha ao carregar tarefas', { description: err?.message })
+    } finally {
+      loadingRef.current = false
     }
   }, [projectId])
 
-  useEffect(() => { load() }, [load])
+  
+  useEffect(() => {
+    load()
+  }, [load])
 
   const handleCreate = async (input: CreateTaskInput) => {
     if (!firebaseUser) return
