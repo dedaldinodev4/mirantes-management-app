@@ -84,6 +84,11 @@ export default function MembersPage() {
     m.email.toLowerCase().includes(search.toLowerCase())
   )
 
+  const getIcon = (role: 'owner' | 'member') => {
+    const Icon = ROLE_CONFIG[role].icon
+    return <Icon size ={11} /> 
+  }
+
   return (
     <AppShell>
       <div className="flex flex-1 flex-col overflow-hidden">
@@ -107,7 +112,7 @@ export default function MembersPage() {
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search members…"
+                  placeholder="Pesquisar membros…"
                   className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/60 outline-none"
                 />
               </div>
@@ -130,14 +135,15 @@ export default function MembersPage() {
                 <div className="p-6">
                   <EmptyState
                     icon={<Users size={20} />}
-                    title={search ? 'No members found' : 'No members yet'}
-                    description={search ? `No members match "${search}"` : 'Add members to your projects to see them here.'}
+                    title={search ? 'Sem menbros encontrados' : 'Sem menbros ainda'}
+                    description={search ? `Nenhum membro corresponde "${search}"` : 'Adicione membros aos seus projetos para vê-los aqui.'}
                   />
                 </div>
               ) : (
                 <div className="divide-y divide-border">
                   {filtered.map((member, i) => {
                     const roleConfig = ROLE_CONFIG[member.role]
+                    const Icon = ROLE_CONFIG[member.role].icon
                     const isActive = selected?.uid === member.uid
 
                     return (
@@ -211,7 +217,7 @@ export default function MembersPage() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className={cn('flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium', ROLE_CONFIG[selected.role].bg, ROLE_CONFIG[selected.role].color)}>
-                    <User size={11} />
+                    {getIcon(selected.role)}
                     {ROLE_CONFIG[selected.role].label}
                   </span>
                   <span className={cn('rounded-full px-2.5 py-0.5 text-[11px] font-medium', selected.isOnline ? 'bg-emerald-500/10 text-emerald-400' : 'bg-secondary text-muted-foreground')}>

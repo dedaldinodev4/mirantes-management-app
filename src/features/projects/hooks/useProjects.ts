@@ -23,7 +23,7 @@ export function useProjects() {
       const data = await getUserProjects(firebaseUser.uid)
       setProjects(data)
     } catch {
-      toast.error('Failed to load projects')
+      toast.error('Falha ao carregar projetos')
     } finally {
       setLoading(false)
     }
@@ -34,21 +34,21 @@ export function useProjects() {
   const handleCreate = async (input: CreateProjectInput) => {
     if (!firebaseUser) return
     const id = await createProject(input, firebaseUser.uid)
-    toast.success('Project created!', { description: input.name })
+    toast.success('Projeto criado!', { description: input.name })
     await load()
     return id
   }
 
   const handleUpdate = async (projectId: string, input: Partial<UpdateProjectInput>) => {
     await updateProject(projectId, input)
-    toast.success('Project updated')
+    toast.success('Projeto atualizado')
     await load()
   }
 
   const handleDelete = async (projectId: string) => {
     if (!firebaseUser) return
     await deleteProject(projectId, firebaseUser.uid)
-    toast.success('Project deleted')
+    toast.success('Projeto apagado')
     await load()
   }
 

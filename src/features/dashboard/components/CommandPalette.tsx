@@ -34,48 +34,48 @@ export function CommandPalette() {
     {
       id: 'dashboard',
       icon: <LayoutDashboard size={14} />,
-      label: 'Go to Dashboard',
-      sub: 'Navigation',
+      label: 'Ir para Dashboard',
+      sub: 'Navegação',
       action: () => { router.push(ROUTES.dashboard); closeCommandPalette() },
-      section: 'Navigation',
+      section: 'Navegação',
     },
     {
       id: 'projects',
       icon: <Folder size={14} />,
-      label: 'View all Projects',
-      sub: 'Navigation',
+      label: 'Ver todos Projetos',
+      sub: 'Navegação',
       action: () => { router.push(ROUTES.projects); closeCommandPalette() },
-      section: 'Navigation',
+      section: 'Navegação',
     },
     {
       id: 'new-task',
       icon: <Plus size={14} />,
-      label: 'Create new Task',
-      sub: 'Action',
+      label: 'Criar tarefa',
+      sub: 'Acão',
       action: () => { openTaskModal(); closeCommandPalette() },
-      section: 'Actions',
+      section: 'Ação',
     },
     {
       id: 'new-project',
       icon: <Folder size={14} />,
-      label: 'Create new Project',
-      sub: 'Action',
+      label: 'Criar projeto',
+      sub: 'Ação',
       action: () => { router.push(ROUTES.newProject); closeCommandPalette() },
-      section: 'Actions',
+      section: 'Ação',
     },
     {
       id: 'settings',
       icon: <Settings size={14} />,
-      label: 'Settings',
+      label: 'Configurações',
       action: () => { router.push(ROUTES.settings); closeCommandPalette() },
-      section: 'Navigation',
+      section: 'Navegação',
     },
     {
       id: 'profile',
       icon: <User size={14} />,
       label: 'Profile',
       action: () => { router.push(ROUTES.profile); closeCommandPalette() },
-      section: 'Navigation',
+      section: 'Navegação',
     },
   ]
 
@@ -83,9 +83,9 @@ export function CommandPalette() {
     id: `project-${p.id}`,
     icon: <div className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: p.color }} />,
     label: p.name,
-    sub: 'Project',
+    sub: 'Projeto',
     action: () => { router.push(ROUTES.kanban(p.id)); closeCommandPalette() },
-    section: 'Projects',
+    section: 'Projetos',
   }))
 
   const allItems = [...staticItems, ...projectItems]
@@ -115,9 +115,9 @@ export function CommandPalette() {
     id: `task-${t.id}`,
     icon: <Clock size={14} />,
     label: t.title,
-    sub: `Task · ${t.status}`,
+    sub: `Tarefa · ${t.status}`,
     action: () => { openTaskModal(t.id); closeCommandPalette() },
-    section: 'Tasks',
+    section: 'Tarefas',
   }))]
 
   const handleKeyDown = useCallback(
@@ -187,7 +187,7 @@ export function CommandPalette() {
                 value={query}
                 onChange={(e) => { setQuery(e.target.value); setSelectedIdx(0) }}
                 onKeyDown={handleKeyDown}
-                placeholder="Search tasks, projects, actions…"
+                placeholder="Busque tarefas, projetos…"
                 className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
               />
               <kbd className="rounded border border-border bg-secondary px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
@@ -199,7 +199,7 @@ export function CommandPalette() {
             <div className="max-h-[380px] overflow-y-auto p-2">
               {allFiltered.length === 0 ? (
                 <div className="py-8 text-center text-sm text-muted-foreground">
-                  No results for &ldquo;{query}&rdquo;
+                  Sem resultado para &ldquo;{query}&rdquo;
                 </div>
               ) : (
                 Object.entries(sections).map(([section, items]) => (
@@ -237,9 +237,9 @@ export function CommandPalette() {
 
             {/* Footer */}
             <div className="flex items-center gap-3 border-t border-border px-4 py-2 text-[10px] text-muted-foreground">
-              <span><kbd className="font-mono">↑↓</kbd> navigate</span>
-              <span><kbd className="font-mono">↵</kbd> select</span>
-              <span><kbd className="font-mono">esc</kbd> close</span>
+              <span><kbd className="font-mono">↑↓</kbd> navegue</span>
+              <span><kbd className="font-mono">↵</kbd> seleciona</span>
+              <span><kbd className="font-mono">esc</kbd> fechar</span>
             </div>
           </motion.div>
         </>

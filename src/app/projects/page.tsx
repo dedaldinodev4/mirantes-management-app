@@ -13,10 +13,30 @@ import { useProjects } from '@/features/projects/hooks/useProjects'
 import { useProjectsStore } from '@/stores/projects.store'
 import { ROUTES } from '@/constants'
 import { calcProgress, formatDate } from '@/utils'
+import { toast } from 'sonner'
 
 export default function ProjectsPage() {
   const { projects, loading, delete: deleteProject } = useProjects()
   const { tasks } = useProjectsStore()
+
+
+  const handleDelete = async (id: string) => {
+  
+    toast.warning(
+      'Deseja apagar este projeto?',
+      {
+        description: 'Esta ação não pode ser revertida.',
+        action: {
+          label: 'Confirmar',
+          onClick: async () => {
+            await deleteProject(id)
+          },
+        },
+        duration: 5000,
+        position: 'top-center'
+      }
+    )
+  }
 
   return (
     <AppShell>
@@ -101,10 +121,7 @@ export default function ProjectsPage() {
                           </div>
                         </div>
                         <button
-                          onClick={(e) => {
-                            e.preventDefault()
-                            if (confirm('Delete this project?')) deleteProject(project.id)
-                          }}
+                          onClick={() => handleDelete(project.id) }
                           className="opacity-0 group-hover:opacity-100 flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
                         >
                           <Trash2 size={12} />
@@ -112,7 +129,7 @@ export default function ProjectsPage() {
                       </div>
 
                       <p className="mb-4 text-xs text-muted-foreground line-clamp-2 leading-relaxed min-h-[32px]">
-                        {project.description || 'No description'}
+                        {project.description || 'Sem descrição'}
                       </p>
 
                       {/* Progress */}

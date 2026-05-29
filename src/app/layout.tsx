@@ -7,7 +7,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: {
-    default: 'Flow — Project Management',
+    default: 'Flow App',
     template: '%s · Flow',
   },
   description:

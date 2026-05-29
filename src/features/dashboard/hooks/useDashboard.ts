@@ -6,6 +6,7 @@ import { useProjectsStore } from '@/stores/projects.store'
 import { getUserProjects } from '@/services/firebase/projects'
 import { getProjectTasks } from '@/services/firebase/tasks'
 import type { User } from '@/types'
+import { toast } from 'sonner'
 
 interface ActivityItem {
   icon: string
@@ -14,7 +15,7 @@ interface ActivityItem {
 }
 
 const MOCK_ACTIVITIES: ActivityItem[] = [
-  { icon: '✅', text: '<strong>Alex Kim</strong> completed <strong>Storybook setup</strong>', time: '2 min ago' },
+  { icon: '✅', text: '<strong>Alex Kim</strong> completed <strong>Storybook setup</strong>', time: '2 min ' },
   { icon: '💬', text: '<strong>Sam Rivera</strong> commented on <strong>API schema</strong>', time: '18 min ago' },
   { icon: '🚀', text: '<strong>Morgan Lee</strong> moved task to <strong>Review</strong>', time: '1h ago' },
   { icon: '⚠️', text: '<strong>Navigation redesign</strong> is overdue', time: '3h ago' },
@@ -41,7 +42,7 @@ export function useDashboard() {
         )
         setTasks(allTasks.flat())
       } catch (err) {
-        console.error('Dashboard load error:', err)
+        toast.error('Dashboard carregou com erro: ')
       } finally {
         setLoading(false)
       }

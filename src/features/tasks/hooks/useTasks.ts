@@ -29,7 +29,7 @@ export function useTasks(projectId: string) {
       const otherTasks = tasks.filter((t) => t.projectId !== projectId)
       setTasks([...otherTasks, ...data])
     } catch {
-      toast.error('Failed to load tasks')
+      toast.error('Falha ao carregar tarefas')
     }
   }, [projectId])
 
@@ -39,11 +39,11 @@ export function useTasks(projectId: string) {
     if (!firebaseUser) return
     try {
       const id = await createTask(input, firebaseUser.uid)
-      toast.success('Task created', { description: input.title })
+      toast.success('Tarefa criada!', { description: input.title })
       await load()
       return id
     } catch {
-      toast.error('Failed to create task')
+      toast.error('Falha ao criar tarefa')
     }
   }
 
@@ -52,7 +52,7 @@ export function useTasks(projectId: string) {
       storeUpdate(taskId, input as any)
       await updateTask(taskId, input)
     } catch {
-      toast.error('Failed to update task')
+      toast.error('Falha ao atualizar tarefa')
       await load()
     }
   }
@@ -63,7 +63,7 @@ export function useTasks(projectId: string) {
       await deleteTask(taskId)
       toast.success('Task deleted')
     } catch {
-      toast.error('Failed to delete task')
+      toast.error('Falha ao apagar tarefa')
       await load()
     }
   }
@@ -73,7 +73,7 @@ export function useTasks(projectId: string) {
       moveTaskLocally(taskId, newStatus, newOrder)
       await moveTask(taskId, newStatus, newOrder)
     } catch {
-      toast.error('Failed to move task')
+      toast.error('Falha ao mover tarefa')
       await load()
     }
   }

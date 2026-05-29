@@ -9,6 +9,7 @@ import { Avatar } from '@/components/shared/Avatar'
 import { LABEL_COLORS } from '@/constants'
 import { cn, getDueDateLabel, isOverdue } from '@/utils'
 import type { TaskWithMeta, Task } from '@/types'
+import { toast } from 'sonner'
 
 interface TaskCardProps {
   task: TaskWithMeta | Task
@@ -31,6 +32,27 @@ export function TaskCard({ task, onClick, onDelete, isDragging = false }: TaskCa
   const labelColor = LABEL_COLORS[task.label ?? ''] ?? { bg: 'bg-secondary', text: 'text-muted-foreground' }
   const assignee = 'assignee' in task ? task.assignee : null
   const commentCount = 'commentCount' in task ? task.commentCount : 0
+
+  const handleDelete = (e: any) => {
+    e.stopPropagation()
+    toast.warning(
+      'Deseja apagar esta tarefa?',
+      {
+        description: 'Esta ação não pode ser revertida.',
+        action: {
+          label: 'Confirmar',
+          onClick: () => {
+            if (onDelete) onDelete()
+          }
+        },
+        duration: 3000,
+        position: 'top-center'
+      }
+    )
+
+  }
+
+
 
   return (
     <div
@@ -100,7 +122,7 @@ export function TaskCard({ task, onClick, onDelete, isDragging = false }: TaskCa
       {/* Delete button */}
       {onDelete && (
         <button
-          onClick={(e) => { e.stopPropagation(); if (confirm('Apagar tarefa?')) onDelete() }}
+          onClick={ (e) => handleDelete(e)}
           className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded text-muted-foreground/30 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all"
         >
           <Trash2 size={10} />
