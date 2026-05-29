@@ -9,6 +9,7 @@ import {
   parseISO,
 } from 'date-fns'
 import { Timestamp } from 'firebase/firestore'
+import { FIREBASE_ERRORS } from '@/constants'
 
 // ── Tailwind class merger ─────────────────────────────────────────────────────
 export function cn(...inputs: ClassValue[]) {
@@ -129,4 +130,8 @@ export function groupBy<T>(array: T[], key: keyof T): Record<string, T[]> {
     },
     {} as Record<string, T[]>,
   )
+}
+
+export function getFirebaseError(err: any): string {
+  return FIREBASE_ERRORS[err?.code] ?? err?.message ?? 'Something went wrong. Please try again.'
 }

@@ -9,11 +9,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthChange(async (user) => {
+      setLoading(true)
       setFirebaseUser(user)
 
       if (user) {
-        const profile = await getUserProfile(user.uid)
-        setProfile(profile)
+        try {
+          const profile = await getUserProfile(user.uid)
+          setProfile(profile)
+        } catch {
+          setProfile(null)
+        }
       } else {
         setProfile(null)
       }

@@ -8,8 +8,13 @@ import {
   signInWithPopup,
   onAuthStateChanged,
   type User as FirebaseUser,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword,
 } from 'firebase/auth'
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
+import { 
+  doc, setDoc, getDoc, updateDoc, serverTimestamp 
+} from 'firebase/firestore'
 import { auth, db } from './config'
 import { COLLECTIONS } from '@/constants'
 import type { User, RegisterInput, LoginInput } from '@/types'
@@ -69,10 +74,41 @@ export async function signOut() {
   await firebaseSignOut(auth)
 }
 
-//* Password Reset *//
+//* Password Reset (unauthenticated) *//
 export async function resetPassword(email: string) {
   await sendPasswordResetEmail(auth, email)
 }
+
+//* Update Profile (authenticated) *//
+export async function updateUserProfile(uid: string, data: { displayName?: string; email?: string }) {
+  const user = auth.currentUser
+  if (!user) throw new Error('Not authenticated')
+  if (data.displayName) {
+    await updateProfile(user, { displayName: data.displayName })
+  }
+  await updateDoc(doc(db, COLLECTIONS.users, uid), {
+    ...data,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+
+//* Change Password (authenticated, requires re-auth) *//
+export async function changePassword(currentPassword: string, newPassword: string) {
+  const user = auth.currentUser
+  if (!user || !user.email) throw new Error('Not authenticated')
+  const credential = EmailAuthProvider.credential(user.email, currentPassword)
+  await reauthenticateWithCredential(user, credential)
+  await updatePassword(user, newPassword)
+}
+
+
+//* Get Multiple User Profiles *//
+export async function getUserProfiles(uids: string[]): Promise<User[]> {
+  const results = await Promise.all(uids.map((uid) => getUserProfile(uid)))
+  return results.filter(Boolean) as User[]
+}
+
 
 //* Get User Profile *//
 export async function getUserProfile(uid: string): Promise<User | null> {

@@ -17,7 +17,11 @@ export default function NewProjectPage() {
   const router = useRouter()
   const { create } = useProjects()
 
-  const { register, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } =
+  const { 
+    register, 
+    handleSubmit,
+    watch, 
+    setValue, formState: { errors, isSubmitting } } =
     useForm<ProjectFormData>({
       resolver: zodResolver(projectSchema),
       defaultValues: { color: PROJECT_COLORS[0] },
@@ -26,8 +30,12 @@ export default function NewProjectPage() {
   const selectedColor = watch('color')
 
   const onSubmit = async (data: ProjectFormData) => {
-    const id = await create({ ...data, color: data.color as any })
-    if (id) router.push(ROUTES.kanban(id))
+    try {
+      const id = await create({ ...data, color: data.color as any })
+      if (id) router.push(ROUTES.kanban(id))
+    } catch {
+      // error already toasted inside create()
+    }
   }
 
   return (
@@ -60,6 +68,7 @@ export default function NewProjectPage() {
                   <input
                     {...register('name')}
                     placeholder="Nome do projeto"
+                    disabled={isSubmitting}
                     className={cn(
                       'w-full rounded-lg border bg-secondary/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 outline-none transition-all',
                       'focus:border-primary/60 focus:ring-2 focus:ring-primary/20',
@@ -77,6 +86,7 @@ export default function NewProjectPage() {
                     {...register('description')}
                     rows={3}
                     placeholder="Descreva este projecto"
+                    disabled={isSubmitting}
                     className="w-full resize-none rounded-lg border border-border/60 bg-secondary/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 outline-none transition-all focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
@@ -90,6 +100,7 @@ export default function NewProjectPage() {
                       <button
                         key={color}
                         type="button"
+                        disabled={isSubmitting}
                         onClick={() => setValue('color', color)}
                         className={cn(
                           'h-7 w-7 rounded-full transition-all',
@@ -113,6 +124,7 @@ export default function NewProjectPage() {
                   <input
                     {...register('dueDate')}
                     type="date"
+                    disabled={isSubmitting}
                     className="w-full rounded-lg border border-border/60 bg-secondary/50 px-3 py-2 text-sm text-foreground outline-none transition-all focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
@@ -129,8 +141,14 @@ export default function NewProjectPage() {
                     disabled={isSubmitting}
                     className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-all"
                   >
-                    {isSubmitting && <Loader2 size={13} className="animate-spin" />}
-                    Criar Projeto
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 size={13} className="animate-spin" />
+                        Criando…
+                      </>
+                    ) : (
+                      'Criar projeto'
+                    )}
                   </button>
                 </div>
               </form>

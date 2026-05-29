@@ -9,6 +9,25 @@ export const KANBAN_COLUMNS: TaskStatus[] = [
   'Done',
 ]
 
+export const FIREBASE_ERRORS: Record<string, string> = {
+  'auth/user-not-found': 'Nenhuma conta encontrada com este e-mail.',
+  'auth/wrong-password': 'Senha incorreta.',
+  'auth/too-many-requests': 'Muitas tentativas. Tente novamente mais tarde.',
+  'auth/invalid-credential': 'E-mail ou senha inválida.',
+  'auth/email-already-in-use': 'Já existe uma conta com este e-mail.',
+  'auth/weak-password': 'A senha deve ter pelo menos 6 caracteres.',
+  'auth/requires-recent-login': 'Por favor, faça login novamente antes de alterar sua senha.',
+  'auth/wrong-password-reauth': 'A senha atual está incorreta.',
+  'auth/network-request-failed': 'Erro de rede. Verifique sua conexão.',
+}
+
+export const NOTIF_PREFS = [
+  { key: 'assigned',  label: 'Tarefa atribuída a mim', desc: 'Quando uma tarefa é atribuída a você' },
+  { key: 'overdue',   label: 'Tarefa atrasada', desc: 'Quando uma tarefa ultrapassa sua data de vencimento' },
+  { key: 'comment',   label: 'Novo comentário', desc: 'Quando alguém comentar sobre sua tarefa' },
+  { key: 'project',   label: 'Projeto atualiza', desc: 'Quando um projeto é atualizado' },
+]
+
 export const COLUMN_COLORS: Record<TaskStatus, string> = {
   Backlog: '#71717a',
   Todo: '#3b82f6',

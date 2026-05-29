@@ -61,6 +61,7 @@ export default function RegisterPage() {
               type="text"
               placeholder="Carlos Viera"
               autoComplete="name"
+              disabled={isSubmitting}
               className={cn(
                 'w-full rounded-lg border bg-secondary/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 transition-all outline-none',
                 'focus:border-primary/60 focus:ring-2 focus:ring-primary/20',
@@ -81,6 +82,7 @@ export default function RegisterPage() {
               type="email"
               placeholder="seu@exemplo.com"
               autoComplete="email"
+              disabled={isSubmitting}
               className={cn(
                 'w-full rounded-lg border bg-secondary/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 transition-all outline-none',
                 'focus:border-primary/60 focus:ring-2 focus:ring-primary/20',
@@ -102,6 +104,7 @@ export default function RegisterPage() {
                 type={showPassword ? 'text' : 'password'}
                 placeholder="••••••••"
                 autoComplete="new-password"
+                disabled={isSubmitting}
                 className={cn(
                   'w-full rounded-lg border bg-secondary/50 px-3 py-2 pr-10 text-sm text-foreground placeholder:text-muted-foreground/60 transition-all outline-none',
                   'focus:border-primary/60 focus:ring-2 focus:ring-primary/20',
@@ -153,6 +156,7 @@ export default function RegisterPage() {
               type="password"
               placeholder="••••••••"
               autoComplete="new-password"
+              disabled={isSubmitting}
               className={cn(
                 'w-full rounded-lg border bg-secondary/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 transition-all outline-none',
                 'focus:border-primary/60 focus:ring-2 focus:ring-primary/20',
@@ -169,8 +173,14 @@ export default function RegisterPage() {
             disabled={isSubmitting}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {isSubmitting && <Loader2 size={14} className="animate-spin" />}
-            Criar conta
+           {isSubmitting ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                Criando conta…
+              </>
+            ) : (
+              'Criar conta'
+            )}
           </button>
         </form>
       </div>

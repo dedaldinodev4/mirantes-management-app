@@ -7,13 +7,18 @@ import {
   signOut,
   signInWithGoogle,
   resetPassword,
+  updateUserProfile,
+  changePassword,
+  getUserProfile
 } from '@/services/firebase/auth'
-import { ROUTES } from '@/constants'
+import { ROUTES, FIREBASE_ERRORS } from '@/constants'
 import type { LoginInput, RegisterInput } from '@/types'
+import { getFirebaseError } from '@/utils'
+
 
 export function useAuth() {
   const router = useRouter()
-  const { firebaseUser, profile, loading, initialized } = useAuthStore()
+  const { firebaseUser, profile, loading, initialized, setProfile } = useAuthStore()
 
   const handleLogin = async (input: LoginInput) => {
     try {
@@ -21,13 +26,7 @@ export function useAuth() {
       toast.success('Bem-vindo de volta!', { description: 'Usuário logado.' })
       router.push(ROUTES.dashboard)
     } catch (err: any) {
-      const messages: Record<string, string> = {
-        'auth/user-not-found': 'Nenhuma conta com este e-mail.',
-        'auth/wrong-password': 'Senha incorreta.',
-        'auth/too-many-requests': 'Muitas tentativas.Tente novamente mais tarde.',
-        'auth/invalid-credential': 'E-mail ou senha inválida.',
-      }
-      toast.error(messages[err.code] ?? 'Login falhou. Por favor, tente novamente.')
+      toast.error(getFirebaseError(err))
       throw err
     }
   }
@@ -35,14 +34,9 @@ export function useAuth() {
   const handleRegister = async (input: RegisterInput) => {
     try {
       await register(input)
-      toast.success('Conta criada!', { description: `Bem-vindo, ${input.displayName}!` })
       router.push(ROUTES.dashboard)
     } catch (err: any) {
-      const messages: Record<string, string> = {
-        'auth/email-already-in-use': 'Uma conta com este e-mail já existe.',
-        'auth/weak-password': 'A senha é muito fraca.',
-      }
-      toast.error(messages[err.code] ?? 'Registro falhou. Por favor, tente novamente.')
+      toast.error(getFirebaseError(err))
       throw err
     }
   }
@@ -50,7 +44,6 @@ export function useAuth() {
   const handleGoogleSignIn = async () => {
     try {
       await signInWithGoogle()
-      toast.success('Entrou com Google!')
       router.push(ROUTES.dashboard)
     } catch (err: any) {
       if (err.code !== 'auth/popup-closed-by-user') {
@@ -63,7 +56,6 @@ export function useAuth() {
   const handleSignOut = async () => {
     try {
       await signOut()
-      toast.success('Saiu com sucesso.')
       router.push(ROUTES.login)
     } catch {
       toast.error('Não foi possível sair.')
@@ -77,10 +69,35 @@ export function useAuth() {
         description: 'Verifique sua caixa de entrada para o link de redefinição de senha.',
       })
     } catch (err: any) {
-      toast.error('Não foi possível enviar o e-mail de redefinição.')
+      toast.error(getFirebaseError(err))
       throw err
     }
   }
+
+  const handleUpdateProfile = async (data: { displayName?: string; email?: string }) => {
+    if (!firebaseUser) return
+    try {
+      await updateUserProfile(firebaseUser.uid, data)
+      // Refresh profile in store
+      const updated = await getUserProfile(firebaseUser.uid)
+      if (updated) setProfile(updated)
+      toast.success('Perfil atualizado com sucesso!')
+    } catch (err: any) {
+      toast.error(getFirebaseError(err))
+      throw err
+    }
+  }
+
+  const handleChangePassword = async (currentPassword: string, newPassword: string) => {
+    try {
+      await changePassword(currentPassword, newPassword)
+      toast.success('Senha alterada com sucesso!')
+    } catch (err: any) {
+      toast.error(getFirebaseError(err))
+      throw err
+    }
+  }
+
 
   return {
     user: firebaseUser,
@@ -93,5 +110,7 @@ export function useAuth() {
     signInWithGoogle: handleGoogleSignIn,
     signOut: handleSignOut,
     resetPassword: handleResetPassword,
+    updateProfile: handleUpdateProfile,
+    changePassword: handleChangePassword,
   }
 }

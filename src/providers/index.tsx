@@ -2,6 +2,7 @@
 
 import { ThemeProvider } from 'next-themes'
 import { AuthProvider } from '@/features/auth/components/AuthProvider'
+import { AuthGuard } from '@/components/shared/AuthGuard'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -11,7 +12,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
       enableSystem={false}
       disableTransitionOnChange={false}
     >
-      <AuthProvider>{children}</AuthProvider>
+      <AuthProvider>
+        <AuthGuard>
+          {children}
+        </AuthGuard>
+      </AuthProvider>
     </ThemeProvider>
   )
 }

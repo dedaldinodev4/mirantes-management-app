@@ -12,9 +12,19 @@ import { loginSchema, type LoginFormData } from '@/features/auth/schemas'
 import { ROUTES } from '@/constants'
 import { cn } from '@/utils'
 
+const GoogleIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden>
+    <path fill="#4285F4" d="M23.745 12.27c0-.79-.07-1.54-.19-2.27h-11.3v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z" />
+    <path fill="#34A853" d="M12.255 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96h-3.98v3.09C3.515 21.3 7.565 24 12.255 24z" />
+    <path fill="#FBBC05" d="M5.525 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62h-3.98a11.86 11.86 0 000 10.76l3.98-3.09z" />
+    <path fill="#EA4335" d="M12.255 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C18.205 1.19 15.495 0 12.255 0c-4.69 0-8.74 2.7-10.71 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z" />
+  </svg>
+)
+
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
-  const { login, signInWithGoogle, loading } = useAuth()
+  const [googleLoading, setGoogleLoading] = useState(false)
+  const { login, signInWithGoogle } = useAuth()
 
   const {
     register,
@@ -23,8 +33,16 @@ export default function LoginPage() {
   } = useForm<LoginFormData>({ resolver: zodResolver(loginSchema) })
 
   const onSubmit = async (data: LoginFormData) => {
-    await login(data).catch(() => {})
+    await login(data).catch(() => { })
   }
+
+  const handleGoogle = async () => {
+    setGoogleLoading(true)
+    await signInWithGoogle().catch(() => { })
+    setGoogleLoading(false)
+  }
+
+  const busy = isSubmitting || googleLoading
 
   return (
     <motion.div
@@ -36,25 +54,21 @@ export default function LoginPage() {
       <div className="rounded-2xl border border-border/60 bg-card/80 px-8 py-8 shadow-2xl backdrop-blur-xl">
         <div className="mb-6">
           <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          Bem-vindo de volta
+            Bem-vindo de volta
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-          Entre na sua conta para continuar
+            Entre na sua conta para continuar
           </p>
         </div>
 
-        {/* Google Sign In */}
+        {/* Google */}
         <button
           type="button"
-          onClick={() => signInWithGoogle().catch(() => {})}
+          onClick={handleGoogle}
+          disabled={busy}
           className="mb-4 flex w-full items-center justify-center gap-2.5 rounded-lg border border-border bg-secondary/50 px-4 py-2.5 text-sm font-medium text-foreground transition-all hover:bg-secondary hover:border-border/80 active:scale-[0.99]"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24">
-            <path fill="#4285F4" d="M23.745 12.27c0-.79-.07-1.54-.19-2.27h-11.3v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/>
-            <path fill="#34A853" d="M12.255 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96h-3.98v3.09C3.515 21.3 7.565 24 12.255 24z"/>
-            <path fill="#FBBC05" d="M5.525 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62h-3.98a11.86 11.86 0 000 10.76l3.98-3.09z"/>
-            <path fill="#EA4335" d="M12.255 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C18.205 1.19 15.495 0 12.255 0c-4.69 0-8.74 2.7-10.71 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"/>
-          </svg>
+          {googleLoading ? <Loader2 size={15} className="animate-spin" /> : <GoogleIcon />}
           Usar conta Google
         </button>
 
@@ -78,6 +92,7 @@ export default function LoginPage() {
               type="email"
               placeholder="seu@email.com"
               autoComplete="email"
+              disabled={busy}
               className={cn(
                 'w-full rounded-lg border bg-secondary/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 transition-all outline-none',
                 'focus:border-primary/60 focus:ring-2 focus:ring-primary/20',
@@ -92,13 +107,13 @@ export default function LoginPage() {
           <div>
             <div className="mb-1.5 flex items-center justify-between">
               <label className="text-xs font-medium text-muted-foreground">
-                Palavra-passe
+                Senha
               </label>
               <Link
                 href="#"
                 className="text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
-                Esqueceu a palavra-passe?
+                Esqueceu a senha?
               </Link>
             </div>
             <div className="relative">
@@ -107,6 +122,7 @@ export default function LoginPage() {
                 type={showPassword ? 'text' : 'password'}
                 placeholder="••••••••"
                 autoComplete="current-password"
+                disabled={busy}
                 className={cn(
                   'w-full rounded-lg border bg-secondary/50 px-3 py-2 pr-10 text-sm text-foreground placeholder:text-muted-foreground/60 transition-all outline-none',
                   'focus:border-primary/60 focus:ring-2 focus:ring-primary/20',
@@ -129,11 +145,17 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={busy}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {isSubmitting && <Loader2 size={14} className="animate-spin" />}
-            Entrar
+            {isSubmitting ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                Entrando…
+              </>
+            ) : (
+              'Entrar'
+            )}
           </button>
         </form>
       </div>

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { devtools, persist } from 'zustand/middleware'
+import { devtools } from 'zustand/middleware'
 import type { User as FirebaseUser } from 'firebase/auth'
 import type { User } from '@/types'
 
@@ -29,12 +29,7 @@ export const useAuthStore = create<AuthState>()(
       setLoading: (loading) => set({ loading }),
       setInitialized: (initialized) => set({ initialized }),
       reset: () =>
-        set({
-          firebaseUser: null,
-          profile: null,
-          loading: false,
-          initialized: true,
-        }),
+        set({ firebaseUser: null, profile: null, loading: false, initialized: true }),
     }),
     { name: 'auth-store' },
   ),
