@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Plus, Folder, Trash2, ArrowRight } from 'lucide-react'
+import { Plus, Folder, Trash2, ArrowRight, Users, Loader2 } from 'lucide-react'
 
 import { AppShell } from '@/components/layout/AppShell'
 import { TopBar } from '@/components/layout/TopBar'
@@ -14,10 +14,14 @@ import { useProjectsStore } from '@/stores/projects.store'
 import { ROUTES } from '@/constants'
 import { calcProgress, formatDate } from '@/utils'
 import { toast } from 'sonner'
+import { useState } from 'react'
+import { AddMemberModal } from '@/features/projects/components/AddMemberModal'
 
 export default function ProjectsPage() {
   const { projects, loading, delete: deleteProject } = useProjects()
   const { tasks } = useProjectsStore()
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [memberModalProject, setMemberModalProject] = useState<Project | null>(null)
 
 
   const handleDelete = async (id: string) => {
@@ -29,7 +33,13 @@ export default function ProjectsPage() {
         action: {
           label: 'Confirmar',
           onClick: async () => {
-            await deleteProject(id)
+            try {
+              setDeletingId(id)
+              await deleteProject(id)
+
+            } finally {
+              setDeletingId(null)
+            }
           },
         },
         duration: 5000,
@@ -88,6 +98,7 @@ export default function ProjectsPage() {
                 const ptasks = tasks.filter((t) => t.projectId === project.id)
                 const done = ptasks.filter((t) => t.status === 'Done').length
                 const pct = calcProgress(ptasks.length, done)
+                const isDeleting = deletingId === project.id
 
                 return (
                   <motion.div
@@ -120,12 +131,23 @@ export default function ProjectsPage() {
                             )}
                           </div>
                         </div>
-                        <button
-                          onClick={() => handleDelete(project.id) }
-                          className="opacity-0 group-hover:opacity-100 flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
-                        >
-                          <Trash2 size={12} />
-                        </button>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={(e) => { e.preventDefault(); setMemberModalProject(project) }}
+                            title="Manage members"
+                            className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+                          >
+                            <Users size={12} />
+                          </button>
+                          <button
+                            onClick={(e) => { e.preventDefault(); handleDelete(project.id) }}
+                            disabled={isDeleting}
+                            title="Delete project"
+                            className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all disabled:opacity-60"
+                          >
+                            {isDeleting ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={12} />}
+                          </button>
+                        </div>
                       </div>
 
                       <p className="mb-4 text-xs text-muted-foreground line-clamp-2 leading-relaxed min-h-[32px]">
@@ -178,6 +200,15 @@ export default function ProjectsPage() {
           )}
         </div>
       </div>
+
+      {/* Add Member Modal */}
+      {memberModalProject && (
+        <AddMemberModal
+          open={!!memberModalProject}
+          onClose={() => setMemberModalProject(null)}
+          project={memberModalProject}
+        />
+      )}
     </AppShell>
   )
 }
