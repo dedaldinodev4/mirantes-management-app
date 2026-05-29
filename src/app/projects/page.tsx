@@ -126,7 +126,7 @@ export default function ProjectsPage() {
                             </h3>
                             {project.dueDate && (
                               <p className="text-[10px] text-muted-foreground">
-                                Datas {formatDate(project.dueDate)}
+                                Prazo {formatDate(project.dueDate)}
                               </p>
                             )}
                           </div>

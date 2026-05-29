@@ -1,62 +1,97 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { X, Search, Loader2, UserPlus, Trash2, Crown } from 'lucide-react'
 import { Avatar } from '@/components/shared/Avatar'
 import { useAuthStore } from '@/stores/auth.store'
 import { useProjects } from '@/features/projects/hooks/useProjects'
-import { getUserProfiles } from '@/services/firebase/auth'
+import { findUserByEmail, getUserProfiles } from '@/services/firebase/auth'
 import type { Project } from '@/types'
 import { toast } from 'sonner'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
+import { addProjectMember, removeProjectMember } from '@/services/firebase/projects'
 
 interface AddMemberModalProps {
   open: boolean
   onClose: () => void
   project: Project
+  onMembersChanged?: () => void
 }
 
-export function AddMemberModal({ open, onClose, project }: AddMemberModalProps) {
+export function AddMemberModal({ open, onClose, project, onMembersChanged }: AddMemberModalProps) {
   const { firebaseUser } = useAuthStore()
   const { addMember, removeMember } = useProjects()
   const [email, setEmail] = useState('')
   const [adding, setAdding] = useState(false)
   const [members, setMembers] = useState<any[]>([])
-  const [loadedMembers, setLoadedMembers] = useState(false)
+  const [loadingMembers, setLoadingMembers] = useState(false)
   const [removingId, setRemovingId] = useState<string | null>(null)
 
   const isOwner = project.ownerId === firebaseUser?.uid
 
   // Load member profiles on open
-  const loadMembers = async () => {
-    if (loadedMembers) return
+  const loadMembers = useCallback(async () => {
+    if (!project.memberIds.length) { setMembers([]); return }
+    setLoadingMembers(true)
     try {
       const profiles = await getUserProfiles(project.memberIds)
       setMembers(profiles)
-      setLoadedMembers(true)
     } catch {
       setMembers([])
+    } finally {
+      setLoadingMembers(false)
     }
-  }
+  }, [project.memberIds.join(',')])
 
-  if (open && !loadedMembers) loadMembers()
+  useEffect(() => {
+    if (open) {
+      setEmail('')
+      loadMembers()
+    }
+  }, [open, loadMembers])
+
+  // Close on Escape
+  useEscapeKey(onClose, open)
 
   const handleAdd = async () => {
-    if (!email.trim()) return
+    const trimmed = email.trim()
+    if (!trimmed) return
+
+    // Basic email validation before hitting Firestore
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      toast.error('Email inválido.', { description: 'Por favor, digite um email válido.' })
+      return
+    }
+
     setAdding(true)
     try {
-      await addMember(project.id, email.trim())
+      const user = await findUserByEmail(trimmed)
+      if (!user) {
+        toast.error('Usuário não encontrado', {
+          description: `Não existe uma conta com email "${trimmed}". Deve se registar primeiro.`,
+        })
+        return
+      }
+      if (project.memberIds.includes(user.uid)) {
+        toast.warning('Membro existente', { description: `${trimmed} já é membro do projeto` })
+        return
+      }
+      await addProjectMember(project.id, user.uid)
+      toast.success('Membro adicionado!', { description: user.displayName ?? trimmed })
       setEmail('')
-      // Reload members list
-      setLoadedMembers(false)
-      setTimeout(() => loadMembers(), 500)
+      // Append to local state immediately — no need to reload all
+      setMembers((prev) => [...prev, user])
+      onMembersChanged?.()
+    } catch (err: any) {
+      toast.error('Falha ao adicionar membro', { description: err?.message })
     } finally {
       setAdding(false)
     }
   }
 
   const handleRemove = async (userId: string) => {
-    
+
     toast.warning(
       'Deseja remover este membro?',
       {
@@ -66,8 +101,12 @@ export function AddMemberModal({ open, onClose, project }: AddMemberModalProps) 
           onClick: async () => {
             setRemovingId(userId)
             try {
-              await removeMember(project.id, userId)
+              await removeProjectMember(project.id, userId, firebaseUser.uid)
               setMembers((prev) => prev.filter((m) => m.uid !== userId))
+              toast.success('Membro removido')
+              onMembersChanged?.()
+            } catch (err: any) {
+              toast.error(err?.message ?? 'Falha ao remover o membro')
             } finally {
               setRemovingId(null)
             }
@@ -77,12 +116,7 @@ export function AddMemberModal({ open, onClose, project }: AddMemberModalProps) 
         position: 'top-center'
       }
     )
-    
-  }
 
-  // Close on Escape
-  if (typeof window !== 'undefined') {
-    window.onkeydown = (e) => { if (e.key === 'Escape' && open) onClose() }
   }
 
   return (
@@ -126,17 +160,19 @@ export function AddMemberModal({ open, onClose, project }: AddMemberModalProps) 
                 {isOwner && (
                   <div>
                     <label className="mb-2 block text-xs font-medium text-muted-foreground">
-                      Adicionar membro pelo Email
+                      Convite pelo email
                     </label>
                     <div className="flex gap-2">
                       <div className="relative flex-1">
                         <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                         <input
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === 'Enter') handleAdd() }}
-                          placeholder="seu@exemplo.com"
-                          disabled={adding}
+                         value={email}
+                         onChange={(e) => setEmail(e.target.value)}
+                         onKeyDown={(e) => { if (e.key === 'Enter') handleAdd() }}
+                         placeholder="colleague@company.com"
+                         type="email"
+                         autoComplete="off"
+                         disabled={adding}
                           className="w-full rounded-lg border border-border/60 bg-secondary/50 pl-8 pr-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 outline-none transition-all focus:border-primary/60 focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
                         />
                       </div>
@@ -146,11 +182,11 @@ export function AddMemberModal({ open, onClose, project }: AddMemberModalProps) 
                         className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                       >
                         {adding ? <Loader2 size={12} className="animate-spin" /> : <UserPlus size={12} />}
-                        {adding ? 'Adicionando…' : 'Adiconar'}
+                        {adding ? 'Adicionando…' : 'Convidar'}
                       </button>
                     </div>
                     <p className="mt-1.5 text-[10px] text-muted-foreground/60">
-                    O usuário já deve ter uma conta na plataforma.
+                      O usuário já deve ter uma conta na plataforma.
                     </p>
                   </div>
                 )}
@@ -161,12 +197,14 @@ export function AddMemberModal({ open, onClose, project }: AddMemberModalProps) 
                     Membros ({project.memberIds.length})
                   </h3>
 
-                  {!loadedMembers ? (
-                    <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
-                      <Loader2 size={12} className="animate-spin" /> Carregando…
+                  {loadingMembers ? (
+                    <div className="flex items-center gap-2 py-4 text-xs text-muted-foreground">
+                      <Loader2 size={13} className="animate-spin" /> Loading members…
                     </div>
+                  ) : members.length === 0 ? (
+                    <p className="py-2 text-xs text-muted-foreground/60">No members loaded.</p>
                   ) : (
-                    <div className="space-y-1">
+                    <div className="space-y-1 max-h-60 overflow-y-auto">
                       {members.map((member) => {
                         const isProjectOwner = member.uid === project.ownerId
                         const isCurrentUser = member.uid === firebaseUser?.uid
@@ -179,11 +217,13 @@ export function AddMemberModal({ open, onClose, project }: AddMemberModalProps) 
                           >
                             <Avatar name={member.displayName} photoURL={member.photoURL} size="sm" />
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex items-center gap-1.5 flex-wrap">
                                 <p className="text-xs font-medium text-foreground truncate">
                                   {member.displayName}
-                                  {isCurrentUser && <span className="text-muted-foreground font-normal"> (você)</span>}
                                 </p>
+                                {isCurrentUser && (
+                                  <span className="text-[10px] text-muted-foreground">(you)</span>
+                                )}
                                 {isProjectOwner && (
                                   <Crown size={10} className="text-amber-400 flex-shrink-0" />
                                 )}
@@ -191,23 +231,22 @@ export function AddMemberModal({ open, onClose, project }: AddMemberModalProps) 
                               <p className="text-[10px] text-muted-foreground truncate">{member.email}</p>
                             </div>
 
-                            {isOwner && !isProjectOwner && !isCurrentUser && (
+                            {isProjectOwner ? (
+                              <span className="flex-shrink-0 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-400">
+                                Owner
+                              </span>
+                            ) : isOwner && !isCurrentUser ? (
                               <button
                                 onClick={() => handleRemove(member.uid)}
                                 disabled={removing}
                                 className="flex-shrink-0 flex h-6 w-6 items-center justify-center rounded text-muted-foreground/40 hover:bg-destructive/10 hover:text-destructive transition-all disabled:opacity-60"
+                                title="Remover membro"
                               >
                                 {removing
                                   ? <Loader2 size={11} className="animate-spin" />
                                   : <Trash2 size={11} />}
                               </button>
-                            )}
-
-                            {isProjectOwner && (
-                              <span className="flex-shrink-0 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-400">
-                                Owner
-                              </span>
-                            )}
+                            ) : null}
                           </div>
                         )
                       })}

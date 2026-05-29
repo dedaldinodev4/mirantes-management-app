@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   X, Calendar, User, Tag, Flag, Trash2, MessageSquare, Loader2,
@@ -38,7 +38,11 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
   const [comments, setComments] = useState<Comment[]>([])
   const [loadingComments, setLoadingComments] = useState(false)
   const [submittingComment, setSubmittingComment] = useState(false)
+  const loadedForRef = useRef<string | null>(null)
 
+
+  // Lock body scroll while open
+  useLockBodyScroll(open)
 
   useEffect(() => {
     if (!open) {
@@ -49,10 +53,18 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
     }
   }, [open])
 
-  // Lock body scroll while open
-  useLockBodyScroll(open)
+  // Load comments once per taskId open — avoid re-fetching on every render
+  useEffect(() => {
+    if (!open || !taskId || loadedForRef.current === taskId) return
+    loadedForRef.current = taskId
+    setLoadingComments(true)
+    getTaskComments(taskId)
+      .then(setComments)
+      .catch(() => { }) // non-critical
+      .finally(() => setLoadingComments(false))
+  }, [open, taskId])
 
-  useEscapeKey(onClose, open)
+
 
 
 
@@ -69,6 +81,9 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
       setLoadingComments(false)
     }
   }, [taskId, open])
+
+  // Close on Escape
+  useEscapeKey(onClose, open)
 
   useEffect(() => {
     loadComments();
@@ -92,7 +107,7 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
             }
           },
         },
-        duration: 3000,
+        duration: 4000,
         position: 'top-center'
       }
     )
@@ -109,29 +124,54 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
     }
   }
 
+  // Post comment — optimistic: append immediately, Firestore in background
   const handlePostComment = async () => {
-    if (!comment.trim() || !firebaseUser || !task) return
+    const content = comment.trim()
+    if (!content || !firebaseUser || !task) return
+
+    // Optimistic append
+    const optimistic: Comment = {
+      id: `temp-${Date.now()}`,
+      taskId: task.id,
+      projectId: task.projectId,
+      authorId: firebaseUser.uid,
+      content,
+      edited: false,
+      createdAt: { toMillis: () => Date.now() } as any,
+      updatedAt: { toMillis: () => Date.now() } as any,
+    }
+    setComments((prev) => [...prev, optimistic])
+    setComment('')
     setSubmittingComment(true)
+
     try {
-      await createComment(
-        { taskId: task.id, projectId: task.projectId, content: comment.trim() },
+      const saved = await createComment(
+        { taskId: task.id, projectId: task.projectId, content },
         firebaseUser.uid,
       )
-      setComment('')
-      await loadComments()
-      toast.success('Comentário postado')
-      setSubmittingComment(false)
+      // Replace temp with real
+      setComments((prev) =>
+        prev.map((c) => (c.id === optimistic.id ? saved : c)),
+      )
     } catch (err: any) {
-      toast.error('Falhar ao postar comentário', { description: err?.message })
-    } 
+      // Rollback
+      setComments((prev) => prev.filter((c) => c.id !== optimistic.id))
+      setComment(content) // restore input
+      toast.error('Falha ao comentar', { description: err?.message })
+    } finally {
+      setSubmittingComment(false)
+    }
   }
 
+  // Delete comment — optimistic
   const handleDeleteComment = async (commentId: string) => {
+    setComments((prev) => prev.filter((c) => c.id !== commentId))
     try {
       await deleteComment(commentId)
-      setComments((prev) => prev.filter((c) => c.id !== commentId))
-    } catch {
-      toast.error('Falha ao apagar comentário')
+    } catch (err: any) {
+      toast.error('Falha ao apagar comentário', { description: err?.message })
+      // Reload to restore
+      if (taskId) getTaskComments(taskId).then(setComments).catch(() => { })
     }
   }
 
@@ -139,7 +179,7 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
   const dueLabel = task ? getDueDateLabel(task.dueDate) : null
   const labelColor = LABEL_COLORS[task?.label ?? ''] ?? { bg: 'bg-secondary', text: 'text-muted-foreground' }
 
- return (
+  return (
     <AnimatePresence>
       {open && task && (
         <>
@@ -190,13 +230,12 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
 
               {/* Body */}
               <div className="flex flex-1 overflow-hidden min-h-0">
-                {/* Main */}
                 <div className="flex-1 overflow-y-auto p-5 space-y-5">
                   {/* Description */}
                   <div>
                     <h3 className="mb-2 text-[11px] font-medium uppercase tracking-widest text-muted-foreground/60">Descrição</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      {task.description || 'Sem descrição.'}
+                      {task.description || 'Nenhuma descrição.'}
                     </p>
                   </div>
 
@@ -230,53 +269,63 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
                       Comentários {comments.length > 0 && `(${comments.length})`}
                     </h3>
 
-                    {/* Comment list */}
                     {loadingComments ? (
                       <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
-                        <Loader2 size={12} className="animate-spin" /> Carregando comentários…
+                        <Loader2 size={12} className="animate-spin" /> carregando…
                       </div>
                     ) : comments.length > 0 ? (
                       <div className="mb-4 space-y-3">
-                        {comments.map((c) => (
-                          <div key={c.id} className="group flex gap-2.5">
-                            <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-[9px] font-semibold text-white">
-                              {c.authorId === firebaseUser?.uid
-                                ? (profile?.displayName?.[0] ?? '?')
-                                : '?'}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-baseline gap-2">
-                                <span className="text-xs font-medium text-foreground">
-                                  {c.authorId === firebaseUser?.uid ? (profile?.displayName ?? 'Você') : 'Membro'}
-                                </span>
-                                <span className="text-[10px] text-muted-foreground/60">
-                                  {formatRelative(c.createdAt)}
-                                  {c.edited && ' · editado'}
-                                </span>
+                        {comments.map((c) => {
+                          const isTemp = c.id.startsWith('temp-')
+                          return (
+                            <div key={c.id} className={cn('group flex gap-2.5', isTemp && 'opacity-60')}>
+                              <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-[9px] font-semibold text-white">
+                                {c.authorId === firebaseUser?.uid
+                                  ? (profile?.displayName?.[0]?.toUpperCase() ?? '?')
+                                  : '?'}
                               </div>
-                              <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                                {c.content}
-                              </p>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-baseline gap-2">
+                                  <span className="text-xs font-medium text-foreground">
+                                    {c.authorId === firebaseUser?.uid
+                                      ? (profile?.displayName ?? 'Você')
+                                      : 'Membro'}
+                                  </span>
+                                  {!isTemp && (
+                                    <span className="text-[10px] text-muted-foreground/60">
+                                      {formatRelative(c.createdAt)}
+                                      {c.edited && ' · editado'}
+                                    </span>
+                                  )}
+                                  {isTemp && (
+                                    <span className="text-[10px] text-muted-foreground/60">postando…</span>
+                                  )}
+                                </div>
+                                <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                                  {c.content}
+                                </p>
+                              </div>
+                              {c.authorId === firebaseUser?.uid && !isTemp && (
+                                <button
+                                  onClick={() => handleDeleteComment(c.id)}
+                                  className="flex-shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-destructive transition-all p-0.5"
+                                  title="Apagar comentário"
+                                >
+                                  <X size={11} />
+                                </button>
+                              )}
                             </div>
-                            {c.authorId === firebaseUser?.uid && (
-                              <button
-                                onClick={() => handleDeleteComment(c.id)}
-                                className="flex-shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-destructive transition-all"
-                              >
-                                <X size={11} />
-                              </button>
-                            )}
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     ) : (
-                      <p className="mb-4 text-xs text-muted-foreground/60">Sem comentários ainda. Faça o primeiro!</p>
+                      <p className="mb-4 text-xs text-muted-foreground/60">Nenhum comentário ainda. Faça o primeiro!</p>
                     )}
 
-                    {/* New comment input */}
+                    {/* New comment */}
                     <div className="flex gap-2">
                       <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-[9px] font-semibold text-white mt-1.5">
-                        {profile?.displayName?.[0] ?? '?'}
+                        {profile?.displayName?.[0]?.toUpperCase() ?? '?'}
                       </div>
                       <div className="flex-1 min-w-0">
                         <textarea
@@ -299,10 +348,8 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
                             disabled={!comment.trim() || submittingComment}
                             className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                           >
-                            {submittingComment
-                              ? <Loader2 size={11} className="animate-spin" />
-                              : <Send size={11} />}
-                            {submittingComment ? 'Postando…' : 'Postar'}
+                            <Send size={11} />
+                            Postar
                           </button>
                         </div>
                       </div>
@@ -323,9 +370,9 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
                     </span>
                   </MetaRow>
                   <MetaRow icon={<User size={12} />} label="Responsável">
-                    <span className="text-xs text-muted-foreground">Não atribuida</span>
+                    <span className="text-xs text-muted-foreground">Não Atribuido</span>
                   </MetaRow>
-                  <MetaRow icon={<Tag size={12} />} label="Etiqueta">
+                  <MetaRow icon={<Tag size={12} />} label="Label">
                     {task.label
                       ? <span className={cn('text-xs font-medium', labelColor.text)}>{task.label}</span>
                       : <span className="text-xs text-muted-foreground">—</span>}
@@ -344,13 +391,13 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
                   className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-60 transition-all"
                 >
                   {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
-                  {deleting ? 'Apagando...' : 'Apagar tarefa'}
+                  {deleting ? 'Apagando…' : 'Apagar tarefa'}
                 </button>
                 <button
                   onClick={onClose}
                   className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
                 >
-                  Fechar
+                  Close
                 </button>
               </div>
             </motion.div>
@@ -361,7 +408,12 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
   )
 }
 
-function MetaRow({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
+
+function MetaRow({ icon, label, children }: {
+  icon: React.ReactNode
+  label: string
+  children: React.ReactNode
+}) {
   return (
     <div>
       <div className="mb-1 flex items-center gap-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground/50">
