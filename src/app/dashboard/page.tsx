@@ -60,7 +60,7 @@ export default function DashboardPage() {
       color: 'text-amber-400',
       bg: 'bg-amber-500/10',
       accent: '#f59e0b',
-      delta: 'entre projetos',
+      delta: 'Todos projetos',
       deltaUp: null,
     },
     {
@@ -157,14 +157,14 @@ export default function DashboardPage() {
             {projects.length === 0 ? (
               <EmptyState
                 icon={<Folder size={20} />}
-                title="No projects yet"
-                description="Create your first project to start organizing tasks."
+                title="Nenhum projeto ainda"
+                description="Crie seu primeiro projeto e organize suas tarefas."
                 action={
                   <Link
                     href={ROUTES.newProject}
                     className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-all"
                   >
-                    <Plus size={12} /> Create project
+                    <Plus size={12} /> Criar projeto
                   </Link>
                 }
               />

@@ -81,8 +81,8 @@ export default function ProjectsPage() {
           ) : projects.length === 0 ? (
             <EmptyState
               icon={<Folder size={22} />}
-              title="No projects yet"
-              description="Create your first project to start tracking tasks and collaborating with your team."
+              title="Nenhum projeto ainda"
+              description="Crie seu primeiro projeto para começar a rastrear tarefas e colaborar com sua equipe."
               action={
                 <Link
                   href={ROUTES.newProject}
@@ -134,7 +134,7 @@ export default function ProjectsPage() {
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={(e) => { e.preventDefault(); setMemberModalProject(project) }}
-                            title="Manage members"
+                            title="Gerir membros"
                             className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
                           >
                             <Users size={12} />

@@ -21,6 +21,7 @@ export const registerSchema = z
     email: z
       .string()
       .min(1, 'Email é obrigatório')
+      .toLowerCase()
       .email('Entra com endereço de email válido'),
     password: z
       .string()
@@ -30,7 +31,7 @@ export const registerSchema = z
     confirmPassword: z.string().min(1, 'Por favor, confirme sua senha'),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: 'Senhas não conicidem',
+    message: 'Senhas não coincidem',
     path: ['confirmPassword'],
   })
 
@@ -44,8 +45,8 @@ export const resetPasswordSchema = z.object({
 
 
 export const profileSchema = z.object({
-  displayName: z.string().min(2, 'Name must be at least 2 characters').max(50),
-  email: z.string().email('Enter a valid email'),
+  displayName: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(50),
+  email: z.string().email('Email inválido'),
 })
 
 export const passwordSchema = z
@@ -56,10 +57,10 @@ export const passwordSchema = z
       .min(8, 'Precisa ter pelo menos 8 caracteres')
       .regex(/[A-Z]/, 'A senha deve conter pelo menos uma letra maiúscula')
       .regex(/[0-9]/, 'A senha deve conter pelo menos um número'),
-    confirmPassword: z.string().min(1, 'Please confirm your password'),
+    confirmPassword: z.string().min(1, 'Por favor, confirme sua senha'),
   })
   .refine((d) => d.newPassword === d.confirmPassword, {
-    message: 'Senhas não conicidem',
+    message: 'Senhas não coincidem',
     path: ['confirmPassword'],
   })
 

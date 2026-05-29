@@ -122,6 +122,7 @@ export async function removeProjectMember(
 
 //* Find user by email *//
 export async function findUserByEmail(email: string) {
+  
   const q = query(
     collection(db, COLLECTIONS.users),
     where('email', '==', email.toLowerCase().trim()),

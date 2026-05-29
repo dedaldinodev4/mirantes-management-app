@@ -79,7 +79,7 @@ export function useProjects() {
       }
       const project = projects.find((p) => p.id === projectId)
       if (project?.memberIds.includes(user.uid as string)) {
-        toast.warning('Já é um membro', { description: `${email} já é membro do projeto` })
+        toast.warning('Membro', { description: `${email} já é membro do projeto` })
         return
       }
       await addProjectMember(projectId, user.uid as string)

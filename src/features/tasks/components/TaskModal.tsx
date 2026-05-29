@@ -1,18 +1,23 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
-  X, Calendar, User, Tag, Flag, Trash2, MessageSquare, Loader2
+  X, Calendar, User, Tag, Flag, Trash2, MessageSquare, Loader2,
+  Send
 } from 'lucide-react'
 
 import { PriorityBadge } from '@/components/shared/PriorityBadge'
 import { useProjectsStore } from '@/stores/projects.store'
 import { PRIORITY_CONFIG, COLUMN_COLORS, LABEL_COLORS } from '@/constants'
-import { cn, formatDate, isOverdue, getDueDateLabel } from '@/utils'
+import { cn, formatDate, isOverdue, getDueDateLabel, formatRelative } from '@/utils'
 import type { UpdateTaskInput } from '@/types'
 import { toast } from 'sonner'
+
+import { createComment, getTaskComments, deleteComment } from '@/services/firebase/comments'
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll'
+import { useEscapeKey } from '../hooks/useEscapeKey'
+import { useAuthStore } from '@/stores/auth.store'
 
 interface TaskModalProps {
   taskId: string | null
@@ -24,17 +29,50 @@ interface TaskModalProps {
 
 export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskModalProps) {
   const { tasks } = useProjectsStore()
+  const { firebaseUser, profile } = useAuthStore()
   const task = tasks.find((t) => t.id === taskId)
+
   const [comment, setComment] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
+  const [comments, setComments] = useState<Comment[]>([])
+  const [loadingComments, setLoadingComments] = useState(false)
+  const [submittingComment, setSubmittingComment] = useState(false)
+
 
   useEffect(() => {
-    if (!open) { setComment(''); setDeleting(false); setUpdatingStatus(null) }
+    if (!open) {
+      setComment('');
+      setDeleting(false);
+      setUpdatingStatus(null);
+      setComments([]);
+    }
   }, [open])
 
   // Lock body scroll while open
   useLockBodyScroll(open)
+
+  useEscapeKey(onClose, open)
+
+
+
+  // Load comments when modal opens
+  const loadComments = useCallback(async () => {
+    if (!taskId || !open) return
+    setLoadingComments(true)
+    try {
+      const data = await getTaskComments(taskId)
+      setComments(data)
+    } catch {
+      // silently fail — comments are not critical
+    } finally {
+      setLoadingComments(false)
+    }
+  }, [taskId, open])
+
+  useEffect(() => {
+    loadComments();
+  }, [loadComments])
 
   const handleDelete = async () => {
     if (!task) return
@@ -58,7 +96,7 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
         position: 'top-center'
       }
     )
-    
+
   }
 
   const handleStatusChange = async (status: string) => {
@@ -71,15 +109,41 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
     }
   }
 
+  const handlePostComment = async () => {
+    if (!comment.trim() || !firebaseUser || !task) return
+    setSubmittingComment(true)
+    try {
+      await createComment(
+        { taskId: task.id, projectId: task.projectId, content: comment.trim() },
+        firebaseUser.uid,
+      )
+      setComment('')
+      await loadComments()
+      toast.success('Comentário postado')
+    } catch (err: any) {
+      toast.error('Falhar ao postar comentário', { description: err?.message })
+    } finally {
+      setSubmittingComment(false)
+    }
+  }
+
+  const handleDeleteComment = async (commentId: string) => {
+    try {
+      await deleteComment(commentId)
+      setComments((prev) => prev.filter((c) => c.id !== commentId))
+    } catch {
+      toast.error('Falha ao apagar comentário')
+    }
+  }
+
   const overdue = task ? isOverdue(task.dueDate) : false
   const dueLabel = task ? getDueDateLabel(task.dueDate) : null
   const labelColor = LABEL_COLORS[task?.label ?? ''] ?? { bg: 'bg-secondary', text: 'text-muted-foreground' }
 
-  return (
+ return (
     <AnimatePresence>
       {open && task && (
         <>
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -96,7 +160,7 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
               exit={{ opacity: 0, scale: 0.96, y: 12 }}
               transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
               className="pointer-events-auto flex w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl"
-              style={{ maxHeight: 'min(85vh, 640px)' }}
+              style={{ maxHeight: 'min(88vh, 680px)' }}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
@@ -112,7 +176,7 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
                     )}
                     {overdue && (
                       <span className="inline-flex items-center rounded bg-red-500/10 px-1.5 py-0.5 text-[10px] font-medium text-red-400">
-                        ⚠ Atrasada
+                        ⚠ Atrasado
                       </span>
                     )}
                   </div>
@@ -129,8 +193,9 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
               <div className="flex flex-1 overflow-hidden min-h-0">
                 {/* Main */}
                 <div className="flex-1 overflow-y-auto p-5 space-y-5">
+                  {/* Description */}
                   <div>
-                    <h3 className="mb-2 text-[11px] font-medium uppercase tracking-widest text-muted-foreground/60">Descrição</h3>
+                    <h3 className="mb-2 text-[11px] font-medium uppercase tracking-widest text-muted-foreground/60">Description</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">
                       {task.description || 'Sem descrição.'}
                     </p>
@@ -160,46 +225,114 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
                     </div>
                   </div>
 
-                  {/* Comment */}
+                  {/* Comments */}
                   <div>
-                    <h3 className="mb-2 text-[11px] font-medium uppercase tracking-widest text-muted-foreground/60">Adicionar comentário</h3>
-                    <textarea
-                      value={comment}
-                      onChange={(e) => setComment(e.target.value)}
-                      rows={3}
-                      placeholder="Escreva um comentário..."
-                      className="w-full resize-none rounded-lg border border-border/60 bg-secondary/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 outline-none transition-all focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
-                    />
-                    <div className="mt-2 flex justify-end">
-                      <button
-                        disabled={!comment.trim()}
-                        className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-40 transition-all"
-                      >
-                        <MessageSquare size={11} /> Comentar
-                      </button>
+                    <h3 className="mb-3 text-[11px] font-medium uppercase tracking-widest text-muted-foreground/60">
+                      Comentários {comments.length > 0 && `(${comments.length})`}
+                    </h3>
+
+                    {/* Comment list */}
+                    {loadingComments ? (
+                      <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
+                        <Loader2 size={12} className="animate-spin" /> Carregando comentários…
+                      </div>
+                    ) : comments.length > 0 ? (
+                      <div className="mb-4 space-y-3">
+                        {comments.map((c) => (
+                          <div key={c.id} className="group flex gap-2.5">
+                            <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-[9px] font-semibold text-white">
+                              {c.authorId === firebaseUser?.uid
+                                ? (profile?.displayName?.[0] ?? '?')
+                                : '?'}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-baseline gap-2">
+                                <span className="text-xs font-medium text-foreground">
+                                  {c.authorId === firebaseUser?.uid ? (profile?.displayName ?? 'Você') : 'Membro'}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground/60">
+                                  {formatRelative(c.createdAt)}
+                                  {c.edited && ' · editado'}
+                                </span>
+                              </div>
+                              <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                                {c.content}
+                              </p>
+                            </div>
+                            {c.authorId === firebaseUser?.uid && (
+                              <button
+                                onClick={() => handleDeleteComment(c.id)}
+                                className="flex-shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-destructive transition-all"
+                              >
+                                <X size={11} />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mb-4 text-xs text-muted-foreground/60">Sem comentários ainda. Faça o primeiro!</p>
+                    )}
+
+                    {/* New comment input */}
+                    <div className="flex gap-2">
+                      <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-[9px] font-semibold text-white mt-1.5">
+                        {profile?.displayName?.[0] ?? '?'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <textarea
+                          value={comment}
+                          onChange={(e) => setComment(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                              e.preventDefault()
+                              handlePostComment()
+                            }
+                          }}
+                          rows={2}
+                          placeholder="Escreva um comentário… (clique ENTER para postar)"
+                          disabled={submittingComment}
+                          className="w-full resize-none rounded-lg border border-border/60 bg-secondary/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 outline-none transition-all focus:border-primary/60 focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
+                        />
+                        <div className="mt-1.5 flex justify-end">
+                          <button
+                            onClick={handlePostComment}
+                            disabled={!comment.trim() || submittingComment}
+                            className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                          >
+                            {submittingComment
+                              ? <Loader2 size={11} className="animate-spin" />
+                              : <Send size={11} />}
+                            {submittingComment ? 'Postando…' : 'Postar'}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Sidebar */}
                 <div className="hidden sm:flex w-44 flex-shrink-0 flex-col border-l border-border bg-secondary/20 p-4 space-y-4 overflow-y-auto">
-                  <MetaRow icon={<Flag size={12} />} label="Prioridade">
+                  <MetaRow icon={<Flag size={12} />} label="Priority">
                     <span className={cn('text-xs', PRIORITY_CONFIG[task.priority].color)}>
                       {PRIORITY_CONFIG[task.priority].label}
                     </span>
                   </MetaRow>
-                  <MetaRow icon={<Calendar size={12} />} label="Prazo">
+                  <MetaRow icon={<Calendar size={12} />} label="Due date">
                     <span className={cn('text-xs', dueLabel?.urgent ? 'text-red-400' : 'text-muted-foreground')}>
                       {task.dueDate ? formatDate(task.dueDate) : '—'}
                     </span>
                   </MetaRow>
-                  <MetaRow icon={<User size={12} />} label="Responsável">
-                    <span className="text-xs text-muted-foreground">Não atribuído</span>
+                  <MetaRow icon={<User size={12} />} label="Assignee">
+                    <span className="text-xs text-muted-foreground">Unassigned</span>
                   </MetaRow>
-                  <MetaRow icon={<Tag size={12} />} label="Etiqueta">
+                  <MetaRow icon={<Tag size={12} />} label="Label">
                     {task.label
                       ? <span className={cn('text-xs font-medium', labelColor.text)}>{task.label}</span>
                       : <span className="text-xs text-muted-foreground">—</span>}
+                  </MetaRow>
+                  <MetaRow icon={<MessageSquare size={12} />} label="Comments">
+                    <span className="text-xs text-muted-foreground">{comments.length}</span>
                   </MetaRow>
                 </div>
               </div>
@@ -212,13 +345,13 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
                   className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-60 transition-all"
                 >
                   {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
-                  {deleting ? 'Apagando…' : 'Apagar tarefa'}
+                  {deleting ? 'Deleting…' : 'Delete task'}
                 </button>
                 <button
                   onClick={onClose}
                   className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
                 >
-                  Fechar
+                  Close
                 </button>
               </div>
             </motion.div>
