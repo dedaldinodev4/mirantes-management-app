@@ -1,15 +1,20 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import type { User as FirebaseUser } from 'firebase/auth'
 import type { User } from '@/types'
 
+
+export interface SessionUser {
+  id: string
+  email: string
+}
+
 interface AuthState {
-  firebaseUser: FirebaseUser | null
+  sessionUser: SessionUser | null
   profile: User | null
   loading: boolean
   initialized: boolean
 
-  setFirebaseUser: (user: FirebaseUser | null) => void
+  setSessionUser: (user: SessionUser | null) => void
   setProfile: (profile: User | null) => void
   setLoading: (loading: boolean) => void
   setInitialized: (initialized: boolean) => void
@@ -19,17 +24,17 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()(
   devtools(
     (set) => ({
-      firebaseUser: null,
+      sessionUser: null,
       profile: null,
       loading: true,
       initialized: false,
 
-      setFirebaseUser: (user) => set({ firebaseUser: user }),
+      setSessionUser: (user) => set({ sessionUser: user }),
       setProfile: (profile) => set({ profile }),
       setLoading: (loading) => set({ loading }),
       setInitialized: (initialized) => set({ initialized }),
       reset: () =>
-        set({ firebaseUser: null, profile: null, loading: false, initialized: true }),
+        set({ sessionUser: null, profile: null, loading: false, initialized: true }),
     }),
     { name: 'auth-store' },
   ),

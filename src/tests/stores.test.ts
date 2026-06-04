@@ -18,8 +18,8 @@ const makeTask = (overrides: Partial<Task> = {}): Task => ({
   completedAt: null,
   order: 0,
   attachments: [],
-  createdAt: {} as Timestamp,
-  updatedAt: {} as Timestamp,
+  createdAt: '',
+  updatedAt: '',
   ...overrides,
 })
 

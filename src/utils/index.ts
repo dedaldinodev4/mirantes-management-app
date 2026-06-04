@@ -8,8 +8,7 @@ import {
   isTomorrow,
   parseISO,
 } from 'date-fns'
-import { Timestamp } from 'firebase/firestore'
-import { FIREBASE_ERRORS } from '@/constants'
+import type { ISODate } from '@/types'
 
 // ── Tailwind class merger ─────────────────────────────────────────────────────
 export function cn(...inputs: ClassValue[]) {
@@ -17,45 +16,38 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // ── Date utilities ────────────────────────────────────────────────────────────
-export function toDate(value: Timestamp | string | Date | null): Date | null {
+export function toDate(value: ISODate | string | null | undefined): Date | null {
   if (!value) return null
-  if (value instanceof Timestamp) return value.toDate()
-  if (value instanceof Date) return value
-  return parseISO(value)
+  try { return parseISO(value) } catch { return null }
 }
 
-export function formatDate(
-  value: Timestamp | string | Date | null,
-  pattern = 'MMM d, yyyy',
-): string {
-  const date = toDate(value)
-  if (!date) return '—'
-  return format(date, pattern)
+export function formatDate(value: ISODate | string | null | undefined, pattern = 'MMM d, yyyy'): string {
+  const d = toDate(value)
+  if (!d) return '—'
+  return format(d, pattern)
 }
 
-export function formatRelative(value: Timestamp | string | Date | null): string {
-  const date = toDate(value)
-  if (!date) return '—'
-  return formatDistanceToNow(date, { addSuffix: true })
+export function formatRelative(value: ISODate | string | null | undefined): string {
+  const d = toDate(value)
+  if (!d) return '—'
+  return formatDistanceToNow(d, { addSuffix: true })
 }
 
-export function isOverdue(dueDate: Timestamp | string | Date | null): boolean {
-  const date = toDate(dueDate)
-  if (!date) return false
-  return isPast(date) && !isToday(date)
+export function isOverdue(value: ISODate | string | null | undefined): boolean {
+  const d = toDate(value)
+  if (!d) return false
+  return isPast(d) && !isToday(d)
 }
 
-export function getDueDateLabel(
-  value: Timestamp | string | Date | null,
-): { label: string; urgent: boolean } {
-  const date = toDate(value)
-  if (!date) return { label: '—', urgent: false }
-
-  if (isToday(date)) return { label: 'Today', urgent: true }
-  if (isTomorrow(date)) return { label: 'Tomorrow', urgent: false }
-  if (isPast(date)) return { label: formatDate(value, 'MMM d'), urgent: true }
+export function getDueDateLabel(value: ISODate | string | null | undefined): { label: string; urgent: boolean } {
+  const d = toDate(value)
+  if (!d) return { label: '—', urgent: false }
+  if (isToday(d)) return { label: 'Today', urgent: true }
+  if (isTomorrow(d)) return { label: 'Tomorrow', urgent: false }
+  if (isPast(d)) return { label: formatDate(value, 'MMM d'), urgent: true }
   return { label: formatDate(value, 'MMM d'), urgent: false }
 }
+
 
 // ── String utilities ──────────────────────────────────────────────────────────
 export function getInitials(name: string): string {
@@ -132,6 +124,3 @@ export function groupBy<T>(array: T[], key: keyof T): Record<string, T[]> {
   )
 }
 
-export function getFirebaseError(err: any): string {
-  return FIREBASE_ERRORS[err?.code] ?? err?.message ?? 'Something went wrong. Please try again.'
-}

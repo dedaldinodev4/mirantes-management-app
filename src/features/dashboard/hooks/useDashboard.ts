@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '@/stores/auth.store'
 import { useProjectsStore } from '@/stores/projects.store'
-import { getUserProjects } from '@/services/firebase/projects'
-import { getProjectTasks } from '@/services/firebase/tasks'
+import { getUserProjects } from '@/services/supabase/projects'
+import { getProjectTasks } from '@/services/supabase/tasks'
 import type { User } from '@/types'
-import { toast } from 'sonner'
 
 interface ActivityItem {
   icon: string
@@ -23,39 +22,37 @@ const MOCK_ACTIVITIES: ActivityItem[] = [
 ]
 
 export function useDashboard() {
-  const { firebaseUser } = useAuthStore()
+  const { sessionUser } = useAuthStore()
   const { projects, tasks, setProjects, setTasks } = useProjectsStore()
-  const [members, setMembers] = useState<User[]>([])
+  const [members] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
+  const loadedRef = useRef(false)
 
   useEffect(() => {
-    if (!firebaseUser) return
+    if (!sessionUser || loadedRef.current) return
+    loadedRef.current = true
 
     const load = async () => {
       try {
         setLoading(true)
-        const userProjects = await getUserProjects(firebaseUser.uid)
+        const userProjects = await getUserProjects(sessionUser.id)
         setProjects(userProjects)
 
-        const allTasks = await Promise.all(
-          userProjects.map((p) => getProjectTasks(p.id))
-        )
-        setTasks(allTasks.flat())
+        if (userProjects.length > 0) {
+          const allTasks = await Promise.all(
+            userProjects.map((p) => getProjectTasks(p.id)),
+          )
+          setTasks(allTasks.flat())
+        }
       } catch (err) {
-        toast.error('Dashboard carregou com erro: ')
+        console.error('Dashboard load error:', err)
       } finally {
         setLoading(false)
       }
     }
 
     load()
-  }, [firebaseUser])
+  }, [sessionUser?.id])
 
-  return {
-    projects,
-    tasks,
-    activities: MOCK_ACTIVITIES,
-    members,
-    loading,
-  }
+  return { projects, tasks, activities: MOCK_ACTIVITIES, members, loading }
 }

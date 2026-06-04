@@ -1,31 +1,12 @@
 import type { TaskStatus, TaskPriority, ProjectColor } from '@/types'
 
-//* Kanban Columns *//
+// ── Kanban Columns ────────────────────────────────────────────────────────────
 export const KANBAN_COLUMNS: TaskStatus[] = [
   'Backlog',
   'Todo',
   'In Progress',
   'Review',
   'Done',
-]
-
-export const FIREBASE_ERRORS: Record<string, string> = {
-  'auth/user-not-found': 'Nenhuma conta encontrada com este e-mail.',
-  'auth/wrong-password': 'Senha incorreta.',
-  'auth/too-many-requests': 'Muitas tentativas. Tente novamente mais tarde.',
-  'auth/invalid-credential': 'E-mail ou senha inválida.',
-  'auth/email-already-in-use': 'Já existe uma conta com este e-mail.',
-  'auth/weak-password': 'A senha deve ter pelo menos 6 caracteres.',
-  'auth/requires-recent-login': 'Por favor, faça login novamente antes de alterar sua senha.',
-  'auth/wrong-password-reauth': 'A senha atual está incorreta.',
-  'auth/network-request-failed': 'Erro de rede. Verifique sua conexão.',
-}
-
-export const NOTIF_PREFS = [
-  { key: 'assigned',  label: 'Tarefa atribuída a mim', desc: 'Quando uma tarefa é atribuída a você' },
-  { key: 'overdue',   label: 'Tarefa atrasada', desc: 'Quando uma tarefa ultrapassa sua data de vencimento' },
-  { key: 'comment',   label: 'Novo comentário', desc: 'Quando alguém comentar sobre sua tarefa' },
-  { key: 'project',   label: 'Projeto atualiza', desc: 'Quando um projeto é atualizado' },
 ]
 
 export const COLUMN_COLORS: Record<TaskStatus, string> = {
@@ -44,38 +25,38 @@ export const COLUMN_BG: Record<TaskStatus, string> = {
   Done: 'bg-emerald-500/10 text-emerald-400',
 }
 
-//* Priority *//
+// ── Priority ──────────────────────────────────────────────────────────────────
 export const PRIORITY_CONFIG: Record<
   TaskPriority,
   { label: string; color: string; bg: string; icon: string }
 > = {
   urgent: {
-    label: 'Urgente',
+    label: 'Urgent',
     color: 'text-red-400',
     bg: 'bg-red-500/10',
     icon: '🔴',
   },
   high: {
-    label: 'Alta',
+    label: 'High',
     color: 'text-amber-400',
     bg: 'bg-amber-500/10',
     icon: '🟠',
   },
   medium: {
-    label: 'Média',
+    label: 'Medium',
     color: 'text-blue-400',
     bg: 'bg-blue-500/10',
     icon: '🔵',
   },
   low: {
-    label: 'Baixa',
+    label: 'Low',
     color: 'text-emerald-400',
     bg: 'bg-emerald-500/10',
     icon: '🟢',
   },
 }
 
-//* Project Colors *//
+// ── Project Colors ────────────────────────────────────────────────────────────
 export const PROJECT_COLORS: ProjectColor[] = [
   '#6366f1',
   '#22c55e',
@@ -87,7 +68,7 @@ export const PROJECT_COLORS: ProjectColor[] = [
   '#14b8a6',
 ]
 
-//* Labels *//
+// ── Labels ────────────────────────────────────────────────────────────────────
 export const TASK_LABELS = [
   'Frontend',
   'Backend',
@@ -118,7 +99,16 @@ export const LABEL_COLORS: Record<string, { bg: string; text: string }> = {
   Improvement: { bg: 'bg-violet-500/15', text: 'text-violet-400' },
 }
 
-//* Routes * //
+
+export const NOTIF_PREFS = [
+  { key: 'assigned',  label: 'Tarefa atribuída a mim', desc: 'Quando uma tarefa é atribuída a você' },
+  { key: 'overdue',   label: 'Tarefa atrasada', desc: 'Quando uma tarefa ultrapassa sua data de vencimento' },
+  { key: 'comment',   label: 'Novo comentário', desc: 'Quando alguém comentar sobre sua tarefa' },
+  { key: 'project',   label: 'Projeto atualiza', desc: 'Quando um projeto é atualizado' },
+]
+
+
+// ── Routes ────────────────────────────────────────────────────────────────────
 export const ROUTES = {
   home: '/',
   login: '/auth/login',
@@ -129,11 +119,10 @@ export const ROUTES = {
   project: (id: string) => `/projects/${id}`,
   kanban: (id: string) => `/projects/${id}/kanban`,
   settings: '/settings',
-  members: '/members',
   profile: '/profile',
 } as const
 
-//* Firebase Collections *//
+// ── Firebase Collections ──────────────────────────────────────────────────────
 export const COLLECTIONS = {
   users: 'users',
   projects: 'projects',
@@ -143,5 +132,5 @@ export const COLLECTIONS = {
   activities: 'activities',
 } as const
 
-//* Pagination *//
+// ── Pagination ────────────────────────────────────────────────────────────────
 export const PAGE_SIZE = 20

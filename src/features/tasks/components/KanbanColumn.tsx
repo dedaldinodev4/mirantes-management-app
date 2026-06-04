@@ -6,11 +6,11 @@ import { Plus } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { TaskCard } from './TaskCard'
 import { cn } from '@/utils'
-import type { TaskStatus, TaskWithMeta } from '@/types'
+import type { Task, TaskStatus, TaskWithMeta } from '@/types'
 
 interface KanbanColumnProps {
   status: TaskStatus
-  tasks: TaskWithMeta[]
+  tasks: TaskWithMeta[] | Task[]
   color: string
   onAddTask: () => void
   onTaskClick: (taskId: string) => void
@@ -60,7 +60,7 @@ export function KanbanColumn({
 
         {tasks.length === 0 && (
           <div className="flex flex-1 items-center justify-center py-6">
-            <p className="text-[11px] text-muted-foreground/50">Largue tarefas aqui</p>
+            <p className="text-[11px] text-muted-foreground/50">Arraste tarefas aqui</p>
           </div>
         )}
       </div>

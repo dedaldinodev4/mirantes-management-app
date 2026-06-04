@@ -2,7 +2,6 @@
 
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { motion } from 'framer-motion'
 import { Calendar, MessageSquare, Trash2, GripVertical } from 'lucide-react'
 import { PriorityBadge } from '@/components/shared/PriorityBadge'
 import { Avatar } from '@/components/shared/Avatar'

@@ -10,11 +10,11 @@ import {
   updateTask,
   deleteTask,
   moveTask,
-} from '@/services/firebase/tasks'
+} from '@/services/supabase/tasks'
 import type { CreateTaskInput, UpdateTaskInput, TaskStatus } from '@/types'
 
 export function useTasks(projectId: string) {
-  const { firebaseUser } = useAuthStore()
+  const { sessionUser } = useAuthStore()
   const {
     tasks,
     setTasks,
@@ -33,8 +33,8 @@ export function useTasks(projectId: string) {
     loadingRef.current = true
     try {
       const data = await getProjectTasks(projectId)
-      const otherTasks = tasks.filter((t) => t.projectId !== projectId)
-      setTasks([...otherTasks, ...data])
+      const others = tasks.filter((t) => t.projectId !== projectId)
+      setTasks([...others, ...data])
     } catch (err: any) {
       toast.error('Falha ao carregar tarefas', { description: err?.message })
     } finally {
@@ -48,13 +48,14 @@ export function useTasks(projectId: string) {
   }, [load])
 
   const handleCreate = async (input: CreateTaskInput) => {
-    if (!firebaseUser) return
+    if (!sessionUser) return
     try {
-      const id = await createTask(input, firebaseUser.uid)
+      const task = await createTask(input, sessionUser.id)
+      const others = tasks.filter((t) => t.projectId !== projectId)
+      const current = tasks.filter((t) => t.projectId === projectId)
+      setTasks([...others, ...current, task])
       toast.success('Tarefa criada!', { description: input.title })
-      // Reload to get real Firestore data with timestamps
-      await load()
-      return id
+      return task.id
     } catch (err: any) {
       toast.error('Falha ao criar tarefa', { description: err?.message })
     }

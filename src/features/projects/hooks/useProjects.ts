@@ -10,22 +10,22 @@ import {
   updateProject,
   deleteProject,
   addProjectMember,
-  removeProjectMember
-} from '@/services/firebase/projects'
-import { findUserByEmail } from '@/services/firebase/auth'
+  removeProjectMember,
+} from '@/services/supabase/projects'
+import { findUserByEmail } from '@/services/supabase/auth'
 import type { CreateProjectInput, UpdateProjectInput } from '@/types'
 
 export function useProjects() {
-  const { firebaseUser } = useAuthStore()
+  const { sessionUser } = useAuthStore()
   const { projects, setProjects, removeProject, loading, setLoading } = useProjectsStore()
   const loadingRef = useRef(false)
 
   const load = useCallback(async () => {
-    if (!firebaseUser || loadingRef.current) return
+    if (!sessionUser || loadingRef.current) return
     loadingRef.current = true
     try {
       setLoading(true)
-      const data = await getUserProjects(firebaseUser.uid)
+      const data = await getUserProjects(sessionUser?.id)
       setProjects(data)
     } catch (err: any) {
       toast.error('Falha ao carregar projetos', { description: err?.message })
@@ -33,16 +33,16 @@ export function useProjects() {
       setLoading(false)
       loadingRef.current = false
     }
-  }, [firebaseUser])
+  }, [sessionUser?.id])
 
   useEffect(() => {
     load()
   }, [load])
 
   const handleCreate = async (input: CreateProjectInput) => {
-    if (!firebaseUser) return
+    if (!sessionUser) return
     try {
-      const id = await createProject(input, firebaseUser.uid)
+      const id = await createProject(input,sessionUser.id)
       toast.success('Projeto criado!', { description: input.name })
       await load()
       return id
@@ -62,10 +62,9 @@ export function useProjects() {
   }
 
   const handleDelete = async (projectId: string) => {
-    if (!firebaseUser) return
-    removeProject(projectId)
+    removeProject(projectId) // optimistic
     try {
-      await deleteProject(projectId, firebaseUser.uid)
+      await deleteProject(projectId)
       toast.success('Projeto apagado')
     } catch (err: any) {
       toast.error(err?.message ?? 'Falha ao apagar o projeto')
@@ -99,9 +98,9 @@ export function useProjects() {
 
   
   const handleRemoveMember = async (projectId: string, userId: string): Promise<void> => {
-    if (!firebaseUser) return
+    if (!sessionUser) return
     try {
-      await removeProjectMember(projectId, userId, firebaseUser.uid)
+      await removeProjectMember(projectId, userId, sessionUser.id)
       toast.success('Membro removido')
       await load()
     } catch (err: any) {

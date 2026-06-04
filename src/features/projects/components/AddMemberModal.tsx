@@ -2,16 +2,15 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { X, Search, Loader2, UserPlus, Trash2, Crown } from 'lucide-react'
+import { X, Search, Loader2, UserPlus, Trash2, Crown, AtSign } from 'lucide-react'
 import { Avatar } from '@/components/shared/Avatar'
 import { useAuthStore } from '@/stores/auth.store'
 import { useProjects } from '@/features/projects/hooks/useProjects'
-import { findUserByEmail, getUserProfiles } from '@/services/firebase/auth'
+import { getUserProfiles, findUserByEmail } from '@/services/supabase/auth'
 import type { Project } from '@/types'
 import { toast } from 'sonner'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
-import { addProjectMember, removeProjectMember } from '@/services/firebase/projects'
-
+import { addProjectMember, removeProjectMember } from '@/services/supabase/projects'
 interface AddMemberModalProps {
   open: boolean
   onClose: () => void
@@ -20,7 +19,7 @@ interface AddMemberModalProps {
 }
 
 export function AddMemberModal({ open, onClose, project, onMembersChanged }: AddMemberModalProps) {
-  const { firebaseUser } = useAuthStore()
+  const { sessionUser } = useAuthStore()
   const { addMember, removeMember } = useProjects()
   const [email, setEmail] = useState('')
   const [adding, setAdding] = useState(false)
@@ -28,7 +27,7 @@ export function AddMemberModal({ open, onClose, project, onMembersChanged }: Add
   const [loadingMembers, setLoadingMembers] = useState(false)
   const [removingId, setRemovingId] = useState<string | null>(null)
 
-  const isOwner = project.ownerId === firebaseUser?.uid
+  const isOwner = project.ownerId === sessionUser?.id
 
   // Load member profiles on open
   const loadMembers = useCallback(async () => {
@@ -91,7 +90,7 @@ export function AddMemberModal({ open, onClose, project, onMembersChanged }: Add
   }
 
   const handleRemove = async (userId: string) => {
-
+    if (!sessionUser) return
     toast.warning(
       'Deseja remover este membro?',
       {
@@ -101,7 +100,7 @@ export function AddMemberModal({ open, onClose, project, onMembersChanged }: Add
           onClick: async () => {
             setRemovingId(userId)
             try {
-              await removeProjectMember(project.id, userId, firebaseUser ? firebaseUser.uid : '')
+              await removeProjectMember(project.id, userId, sessionUser ? sessionUser.id : '')
               setMembers((prev) => prev.filter((m) => m.uid !== userId))
               toast.success('Membro removido')
               onMembersChanged?.()
@@ -159,34 +158,23 @@ export function AddMemberModal({ open, onClose, project, onMembersChanged }: Add
                 {/* Add by email */}
                 {isOwner && (
                   <div>
-                    <label className="mb-2 block text-xs font-medium text-muted-foreground">
-                      Convite pelo email
-                    </label>
+                    <label className="mb-2 block text-xs font-medium text-muted-foreground">Invite by email</label>
                     <div className="flex gap-2">
                       <div className="relative flex-1">
-                        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                        <input
-                         value={email}
-                         onChange={(e) => setEmail(e.target.value)}
-                         onKeyDown={(e) => { if (e.key === 'Enter') handleAdd() }}
-                         placeholder="colleague@company.com"
-                         type="email"
-                         autoComplete="off"
-                         disabled={adding}
-                          className="w-full rounded-lg border border-border/60 bg-secondary/50 pl-8 pr-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 outline-none transition-all focus:border-primary/60 focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
-                        />
+                        <AtSign size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                        <input value={email} onChange={(e) => setEmail(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') handleAdd() }}
+                          placeholder="colleague@company.com" type="email" autoComplete="off" disabled={adding}
+                          className="w-full rounded-lg border border-border/60 bg-secondary/50 pl-8 pr-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 outline-none transition-all focus:border-primary/60 focus:ring-2 focus:ring-primary/20 disabled:opacity-60" />
                       </div>
-                      <button
-                        onClick={handleAdd}
-                        disabled={adding || !email.trim()}
-                        className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                      >
+                      <button onClick={handleAdd} disabled={adding || !email.trim()}
+                        className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
                         {adding ? <Loader2 size={12} className="animate-spin" /> : <UserPlus size={12} />}
-                        {adding ? 'Adicionando…' : 'Convidar'}
+                        {adding ? 'Adicionando...' : 'Convite'}
                       </button>
                     </div>
-                    <p className="mt-1.5 text-[10px] text-muted-foreground/60">
-                      O usuário já deve ter uma conta na plataforma.
+                    <p className="mt-1.5 text-[11px] text-muted-foreground/60">
+                      A pessoa já deve ter uma conta na Flow
                     </p>
                   </div>
                 )}
@@ -207,7 +195,7 @@ export function AddMemberModal({ open, onClose, project, onMembersChanged }: Add
                     <div className="space-y-1 max-h-60 overflow-y-auto">
                       {members.map((member) => {
                         const isProjectOwner = member.uid === project.ownerId
-                        const isCurrentUser = member.uid === firebaseUser?.uid
+                        const isCurrentUser = member.uid === sessionUser?.id
                         const removing = removingId === member.uid
 
                         return (

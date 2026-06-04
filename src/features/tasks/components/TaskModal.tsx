@@ -14,7 +14,7 @@ import { cn, formatDate, isOverdue, getDueDateLabel, formatRelative } from '@/ut
 import type { UpdateTaskInput } from '@/types'
 import { toast } from 'sonner'
 
-import { createComment, getTaskComments, deleteComment } from '@/services/firebase/comments'
+import { createComment, getTaskComments, deleteComment } from '@/services/supabase/comments'
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll'
 import { useEscapeKey } from '../hooks/useEscapeKey'
 import { useAuthStore } from '@/stores/auth.store'
@@ -30,65 +30,48 @@ interface TaskModalProps {
 
 export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskModalProps) {
   const { tasks } = useProjectsStore()
-  const { firebaseUser, profile } = useAuthStore()
+  const { sessionUser, profile } = useAuthStore()
   const task = tasks.find((t) => t.id === taskId)
 
   const [comment, setComment] = useState('')
+  const [submittingComment, setSubmittingComment] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
   const [comments, setComments] = useState<TaskComment[]>([])
   const [loadingComments, setLoadingComments] = useState(false)
-  const [submittingComment, setSubmittingComment] = useState(false)
   const loadedForRef = useRef<string | null>(null)
 
-
-  // Lock body scroll while open
-  useLockBodyScroll(open)
+  useEffect(() => {
+    if (open) document.body.style.overflow = 'hidden'
+    else document.body.style.overflow = ''
+    return () => { document.body.style.overflow = '' }
+  }, [open])
 
   useEffect(() => {
     if (!open) {
-      setComment('');
-      setDeleting(false);
-      setUpdatingStatus(null);
-      setComments([]);
+      setComment(''); setDeleting(false); setUpdatingStatus(null)
+      setComments([]); loadedForRef.current = null
     }
   }, [open])
 
-  // Load comments once per taskId open — avoid re-fetching on every render
+  // Load comments once per taskId
   useEffect(() => {
     if (!open || !taskId || loadedForRef.current === taskId) return
     loadedForRef.current = taskId
     setLoadingComments(true)
     getTaskComments(taskId)
       .then(setComments)
-      .catch(() => { }) // non-critical
+      .catch(() => { })
       .finally(() => setLoadingComments(false))
   }, [open, taskId])
 
-
-  // Load comments when modal opens
-  const loadComments = useCallback(async () => {
-    if (!taskId || !open) return
-    setLoadingComments(true)
-    try {
-      const data = await getTaskComments(taskId)
-      setComments(data)
-    } catch {
-      // silently fail — comments are not critical
-    } finally {
-      setLoadingComments(false)
-    }
-  }, [taskId, open])
-
-  // Close on Escape
-  useEscapeKey(onClose, open)
-
   useEffect(() => {
-    loadComments();
-  }, [loadComments])
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    if (open) window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [open, onClose])
 
   const handleDelete = async () => {
-    if (!task) return
     toast.warning(
       'Deseja apagar esta tarefa?',
       {
@@ -98,45 +81,41 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
           onClick: async () => {
             setDeleting(true)
             try {
-              await onDelete(task.id)
-              onClose()
+              if (task) {
+                await onDelete(task.id); onClose()
+              }
             } finally {
               setDeleting(false)
             }
-          },
+          }
         },
-        duration: 4000,
+        duration: 3000,
         position: 'top-center'
       }
     )
 
   }
 
+
   const handleStatusChange = async (status: string) => {
     if (!task || updatingStatus) return
     setUpdatingStatus(status)
-    try {
-      await onUpdate(task.id, { status: status as any })
-    } finally {
-      setUpdatingStatus(null)
-    }
+    try { await onUpdate(task.id, { status: status as any }) }
+    finally { setUpdatingStatus(null) }
   }
 
-  // Post comment — optimistic: append immediately, Firestore in background
+  // Optimistic comment post
   const handlePostComment = async () => {
     const content = comment.trim()
-    if (!content || !firebaseUser || !task) return
+    if (!content || !sessionUser || !task) return
 
-    // Optimistic append
+    const tempId = `temp-${Date.now()}`
     const optimistic: TaskComment = {
-      id: `temp-${Date.now()}`,
-      taskId: task.id,
-      projectId: task.projectId,
-      authorId: firebaseUser.uid,
-      content,
+      id: tempId, taskId: task.id, projectId: task.projectId,
+      authorId: sessionUser.id, content,
       edited: false,
-      createdAt: { toMillis: () => Date.now() } as any,
-      updatedAt: { toMillis: () => Date.now() } as any,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }
     setComments((prev) => [...prev, optimistic])
     setComment('')
@@ -145,30 +124,25 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
     try {
       const saved = await createComment(
         { taskId: task.id, projectId: task.projectId, content },
-        firebaseUser.uid,
+        sessionUser.id,
       )
-      // Replace temp with real
-      setComments((prev : any) =>
-        prev.map((c: any) => (c.id === optimistic.id ? saved : c)),
-      )
+      setComments((prev) => prev.map((c) => (c.id === tempId ? saved : c)))
     } catch (err: any) {
-      // Rollback
-      setComments((prev) => prev.filter((c) => c.id !== optimistic.id))
-      setComment(content) // restore input
-      toast.error('Falha ao comentar', { description: err?.message })
+      setComments((prev) => prev.filter((c) => c.id !== tempId))
+      setComment(content)
+      toast.error('Falha ao postar o comentário', { description: err?.message })
     } finally {
       setSubmittingComment(false)
     }
   }
 
-  // Delete comment — optimistic
+  // Optimistic comment delete
   const handleDeleteComment = async (commentId: string) => {
     setComments((prev) => prev.filter((c) => c.id !== commentId))
     try {
       await deleteComment(commentId)
     } catch (err: any) {
-      toast.error('Falha ao apagar comentário', { description: err?.message })
-      // Reload to restore
+      toast.error('Falha ao apagar o comentário', { description: err?.message })
       if (taskId) getTaskComments(taskId).then(setComments).catch(() => { })
     }
   }
@@ -181,14 +155,9 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
     <AnimatePresence>
       {open && task && (
         <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
-            onClick={onClose}
-          />
+            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
             <motion.div
@@ -213,15 +182,13 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
                     )}
                     {overdue && (
                       <span className="inline-flex items-center rounded bg-red-500/10 px-1.5 py-0.5 text-[10px] font-medium text-red-400">
-                        ⚠ Atrasado
+                        ⚠ Atrasada
                       </span>
                     )}
                   </div>
                 </div>
-                <button
-                  onClick={onClose}
-                  className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
-                >
+                <button onClick={onClose}
+                  className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-all">
                   <X size={13} />
                 </button>
               </div>
@@ -232,9 +199,7 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
                   {/* Description */}
                   <div>
                     <h3 className="mb-2 text-[11px] font-medium uppercase tracking-widest text-muted-foreground/60">Descrição</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {task.description || 'Nenhuma descrição.'}
-                    </p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{task.description || 'Sem descrição.'}</p>
                   </div>
 
                   {/* Status */}
@@ -242,18 +207,10 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
                     <h3 className="mb-2 text-[11px] font-medium uppercase tracking-widest text-muted-foreground/60">Status</h3>
                     <div className="flex flex-wrap gap-1.5">
                       {(['Backlog', 'Todo', 'In Progress', 'Review', 'Done'] as const).map((s) => (
-                        <button
-                          key={s}
-                          onClick={() => handleStatusChange(s)}
-                          disabled={!!updatingStatus}
-                          className={cn(
-                            'flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-all disabled:cursor-not-allowed',
-                            task.status === s
-                              ? 'border-transparent text-white'
-                              : 'border-border text-muted-foreground hover:border-border/80 hover:text-foreground',
-                          )}
-                          style={task.status === s ? { background: COLUMN_COLORS[s] } : {}}
-                        >
+                        <button key={s} onClick={() => handleStatusChange(s)} disabled={!!updatingStatus}
+                          className={cn('flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-all disabled:cursor-not-allowed',
+                            task.status === s ? 'border-transparent text-white' : 'border-border text-muted-foreground hover:border-border/80 hover:text-foreground')}
+                          style={task.status === s ? { background: COLUMN_COLORS[s] } : {}}>
                           {updatingStatus === s && <Loader2 size={10} className="animate-spin" />}
                           {s}
                         </button>
@@ -269,7 +226,7 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
 
                     {loadingComments ? (
                       <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
-                        <Loader2 size={12} className="animate-spin" /> carregando…
+                        <Loader2 size={12} className="animate-spin" /> Carregando…
                       </div>
                     ) : comments.length > 0 ? (
                       <div className="mb-4 space-y-3">
@@ -278,37 +235,25 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
                           return (
                             <div key={c.id} className={cn('group flex gap-2.5', isTemp && 'opacity-60')}>
                               <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-[9px] font-semibold text-white">
-                                {c.authorId === firebaseUser?.uid
-                                  ? (profile?.displayName?.[0]?.toUpperCase() ?? '?')
-                                  : '?'}
+                                {c.authorId === sessionUser?.id ? (profile?.displayName?.[0]?.toUpperCase() ?? '?') : '?'}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-baseline gap-2">
                                   <span className="text-xs font-medium text-foreground">
-                                    {c.authorId === firebaseUser?.uid
-                                      ? (profile?.displayName ?? 'Você')
-                                      : 'Membro'}
+                                    {c.authorId === sessionUser?.id ? (profile?.displayName ?? 'Você') : 'Membro'}
                                   </span>
                                   {!isTemp && (
                                     <span className="text-[10px] text-muted-foreground/60">
-                                      {formatRelative(c.createdAt)}
-                                      {c.edited && ' · editado'}
+                                      {formatRelative(c.createdAt)}{c.edited && ' · editado'}
                                     </span>
                                   )}
-                                  {isTemp && (
-                                    <span className="text-[10px] text-muted-foreground/60">postando…</span>
-                                  )}
+                                  {isTemp && <span className="text-[10px] text-muted-foreground/60">postando…</span>}
                                 </div>
-                                <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                                  {c.content}
-                                </p>
+                                <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{c.content}</p>
                               </div>
-                              {c.authorId === firebaseUser?.uid && !isTemp && (
-                                <button
-                                  onClick={() => handleDeleteComment(c.id)}
-                                  className="flex-shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-destructive transition-all p-0.5"
-                                  title="Apagar comentário"
-                                >
+                              {c.authorId === sessionUser?.id && !isTemp && (
+                                <button onClick={() => handleDeleteComment(c.id)}
+                                  className="flex-shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-destructive transition-all p-0.5">
                                   <X size={11} />
                                 </button>
                               )}
@@ -317,7 +262,7 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
                         })}
                       </div>
                     ) : (
-                      <p className="mb-4 text-xs text-muted-foreground/60">Nenhum comentário ainda. Faça o primeiro!</p>
+                      <p className="mb-4 text-xs text-muted-foreground/60">Sem comentários ainda.</p>
                     )}
 
                     {/* New comment */}
@@ -326,28 +271,14 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
                         {profile?.displayName?.[0]?.toUpperCase() ?? '?'}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <textarea
-                          value={comment}
-                          onChange={(e) => setComment(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                              e.preventDefault()
-                              handlePostComment()
-                            }
-                          }}
-                          rows={2}
-                          placeholder="Escreva um comentário… (clique ENTER para postar)"
-                          disabled={submittingComment}
-                          className="w-full resize-none rounded-lg border border-border/60 bg-secondary/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 outline-none transition-all focus:border-primary/60 focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
-                        />
+                        <textarea value={comment} onChange={(e) => setComment(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handlePostComment() } }}
+                          rows={2} placeholder="Escreva um comentário..." disabled={submittingComment}
+                          className="w-full resize-none rounded-lg border border-border/60 bg-secondary/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 outline-none transition-all focus:border-primary/60 focus:ring-2 focus:ring-primary/20 disabled:opacity-60" />
                         <div className="mt-1.5 flex justify-end">
-                          <button
-                            onClick={handlePostComment}
-                            disabled={!comment.trim() || submittingComment}
-                            className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                          >
-                            <Send size={11} />
-                            Postar
+                          <button onClick={handlePostComment} disabled={!comment.trim() || submittingComment}
+                            className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                            <Send size={11} /> Postar
                           </button>
                         </div>
                       </div>
@@ -368,11 +299,10 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
                     </span>
                   </MetaRow>
                   <MetaRow icon={<User size={12} />} label="Responsável">
-                    <span className="text-xs text-muted-foreground">Não Atribuido</span>
+                    <span className="text-xs text-muted-foreground">Não atribuído</span>
                   </MetaRow>
-                  <MetaRow icon={<Tag size={12} />} label="Label">
-                    {task.label
-                      ? <span className={cn('text-xs font-medium', labelColor.text)}>{task.label}</span>
+                  <MetaRow icon={<Tag size={12} />} label="Etiqueta">
+                    {task.label ? <span className={cn('text-xs font-medium', labelColor.text)}>{task.label}</span>
                       : <span className="text-xs text-muted-foreground">—</span>}
                   </MetaRow>
                   <MetaRow icon={<MessageSquare size={12} />} label="Comentários">
@@ -383,19 +313,14 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
 
               {/* Footer */}
               <div className="flex items-center justify-between border-t border-border px-5 py-3 flex-shrink-0">
-                <button
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-60 transition-all"
-                >
+                <button onClick={handleDelete} disabled={deleting}
+                  className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-60 transition-all">
                   {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                   {deleting ? 'Apagando…' : 'Apagar tarefa'}
                 </button>
-                <button
-                  onClick={onClose}
-                  className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
-                >
-                  Close
+                <button onClick={onClose}
+                  className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-all">
+                  Fechar
                 </button>
               </div>
             </motion.div>

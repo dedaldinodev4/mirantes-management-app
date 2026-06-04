@@ -1,11 +1,11 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import type { Project, Task, KanbanColumn, TaskFilters } from '@/types'
+import type { Project, Task, KanbanColumn, TaskFilters, TaskStatus } from '@/types'
 import { KANBAN_COLUMNS, COLUMN_COLORS } from '@/constants'
 
 interface ProjectsState {
   projects: Project[]
-  currentProject: Project | null
+  currentProjectId: string | null   // ← tracks which project the board is showing
   tasks: Task[]
   columns: KanbanColumn[]
   filters: TaskFilters
@@ -13,10 +13,10 @@ interface ProjectsState {
   error: string | null
 
   setProjects: (projects: Project[]) => void
-  removeProject: (projectId: string) => void          // ← new: optimistic delete
-  setCurrentProject: (project: Project | null) => void
+  removeProject: (projectId: string) => void
+  setCurrentProjectId: (id: string | null) => void
   setTasks: (tasks: Task[]) => void
-  buildColumns: () => void
+  buildColumns: (projectId?: string) => void
   moveTaskLocally: (taskId: string, newStatus: string, newOrder: number) => void
   setFilters: (filters: Partial<TaskFilters>) => void
   clearFilters: () => void
@@ -31,7 +31,7 @@ export const useProjectsStore = create<ProjectsState>()(
   devtools(
     (set, get) => ({
       projects: [],
-      currentProject: null,
+      currentProjectId: null,
       tasks: [],
       columns: [],
       filters: {},
@@ -40,7 +40,6 @@ export const useProjectsStore = create<ProjectsState>()(
 
       setProjects: (projects) => set({ projects }),
 
-      // Optimistic delete: remove project + its tasks from store immediately
       removeProject: (projectId) => {
         set((state) => ({
           projects: state.projects.filter((p) => p.id !== projectId),
@@ -49,43 +48,48 @@ export const useProjectsStore = create<ProjectsState>()(
         get().buildColumns()
       },
 
-      setCurrentProject: (project) => set({ currentProject: project }),
+      setCurrentProjectId: (id) => {
+        set({ currentProjectId: id })
+        get().buildColumns(id ?? undefined)
+      },
 
       setTasks: (tasks) => {
         set({ tasks })
-        get().buildColumns()
+        // Rebuild columns scoped to current project
+        get().buildColumns(get().currentProjectId ?? undefined)
       },
 
-      buildColumns: () => {
-        const { tasks, filters } = get()
-        let filtered = [...tasks]
+      // ── buildColumns — ALWAYS scoped to a specific projectId ─────────────
+      buildColumns: (projectId?: string) => {
+        const { tasks, filters, currentProjectId } = get()
+        const pid = projectId ?? currentProjectId
+
+        // Only show tasks that belong to the current project
+        let filtered = pid
+          ? tasks.filter((t) => t.projectId === pid)
+          : tasks
 
         if (filters.search) {
           const q = filters.search.toLowerCase()
           filtered = filtered.filter(
-            (t) =>
-              t.title.toLowerCase().includes(q) ||
-              t.description.toLowerCase().includes(q),
+            (t) => t.title.toLowerCase().includes(q) || t.description.toLowerCase().includes(q),
           )
         }
-        if (filters.status?.length) {
+        if (filters.status?.length)
           filtered = filtered.filter((t) => filters.status!.includes(t.status))
-        }
-        if (filters.priority?.length) {
+        if (filters.priority?.length)
           filtered = filtered.filter((t) => filters.priority!.includes(t.priority))
-        }
-        if (filters.assigneeId?.length) {
+        if (filters.assigneeId?.length)
           filtered = filtered.filter(
             (t) => t.assigneeId && filters.assigneeId!.includes(t.assigneeId),
           )
-        }
 
         const columns: KanbanColumn[] = KANBAN_COLUMNS.map((status) => ({
           id: status,
           title: status,
           tasks: filtered
             .filter((t) => t.status === status)
-            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) as any,
+            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
           color: COLUMN_COLORS[status],
         }))
 
@@ -93,10 +97,13 @@ export const useProjectsStore = create<ProjectsState>()(
       },
 
       moveTaskLocally: (taskId, newStatus, newOrder) => {
-        const tasks = get().tasks.map((t) =>
-          t.id === taskId ? { ...t, status: newStatus as any, order: newOrder } : t,
-        )
-        set({ tasks })
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.id === taskId
+              ? { ...t, status: newStatus as TaskStatus, order: newOrder }
+              : t,
+          ),
+        }))
         get().buildColumns()
       },
 
@@ -120,9 +127,7 @@ export const useProjectsStore = create<ProjectsState>()(
 
       updateTask: (taskId, updates) => {
         set((state) => ({
-          tasks: state.tasks.map((t) =>
-            t.id === taskId ? { ...t, ...updates } : t,
-          ),
+          tasks: state.tasks.map((t) => (t.id === taskId ? { ...t, ...updates } : t)),
         }))
         get().buildColumns()
       },

@@ -9,8 +9,7 @@ import { Avatar } from '@/components/shared/Avatar'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { useAuthStore } from '@/stores/auth.store'
 import { useProjectsStore } from '@/stores/projects.store'
-import { getUserProfiles } from '@/services/firebase/auth'
-import { getUserProjects } from '@/services/firebase/projects'
+import { getUserProfiles } from '@/services/supabase/auth'
 import { cn, formatDate, calcProgress } from '@/utils'
 import type { User as AppUser } from '@/types'
 
@@ -28,7 +27,7 @@ const ROLE_CONFIG = {
 }
 
 export default function MembersPage() {
-  const { firebaseUser, profile } = useAuthStore()
+  const { sessionUser, profile } = useAuthStore()
   const { projects, tasks } = useProjectsStore()
   const [members, setMembers] = useState<MemberWithStats[]>([])
   const [loading, setLoading] = useState(true)
@@ -37,51 +36,32 @@ export default function MembersPage() {
 
   useEffect(() => {
     const load = async () => {
-      if (!firebaseUser) return
+      if (!sessionUser) return
       try {
         setLoading(true)
-        // Collect all unique member IDs across projects
         const allUids = [...new Set(projects.flatMap((p) => p.memberIds))]
-        if (allUids.length === 0) {
-          // Fallback: at least show current user
-          if (profile) {
-            setMembers([{
-              ...profile,
-              role: 'owner',
-              projectCount: projects.length,
-              taskCount: 0,
-              completedCount: 0,
-              isOnline: true,
-            }])
-          }
-          return
-        }
+        if (!allUids.length) { setMembers([]); return }
         const profiles = await getUserProfiles(allUids)
-        const membersWithStats: MemberWithStats[] = profiles.map((p) => {
-          const userProjects = projects.filter((proj) => proj.memberIds.includes(p.uid))
-          const userTasks = tasks.filter((t) => t.assigneeId === p.uid)
-          const userDone = userTasks.filter((t) => t.status === 'Done')
-          const isOwner = projects.some((proj) => proj.ownerId === p.uid)
-          return {
-            ...p,
-            role: isOwner ? 'owner' : 'member',
-            projectCount: userProjects.length,
-            taskCount: userTasks.length,
-            completedCount: userDone.length,
-            isOnline: p.uid === firebaseUser.uid,
-          }
-        })
-        setMembers(membersWithStats)
+        const withStats: MemberWithStats[] = profiles.map((p) => ({
+          ...p,
+          role: projects.some((proj) => proj.ownerId === p.uid) ? 'owner' : 'member',
+          projectCount: projects.filter((proj) => proj.memberIds.includes(p.uid)).length,
+          taskCount: tasks.filter((t) => t.assigneeId === p.uid).length,
+          completedCount: tasks.filter((t) => t.assigneeId === p.uid && t.status === 'Done').length,
+          isOnline: p.uid === sessionUser.id,
+        }))
+        setMembers(withStats)
       } finally {
         setLoading(false)
       }
     }
     load()
-  }, [firebaseUser, projects, tasks, profile])
+  }, [sessionUser?.id, projects.length])
 
-  const filtered = members.filter((m) =>
-    m.displayName.toLowerCase().includes(search.toLowerCase()) ||
-    m.email.toLowerCase().includes(search.toLowerCase())
+  const filtered = members.filter(
+    (m) =>
+      m.displayName.toLowerCase().includes(search.toLowerCase()) ||
+      m.email.toLowerCase().includes(search.toLowerCase()),
   )
 
   const getIcon = (role: 'owner' | 'member') => {
@@ -170,7 +150,7 @@ export default function MembersPage() {
                             <span className="text-sm font-medium text-foreground truncate">
                               {member.displayName}
                             </span>
-                            {member.uid === firebaseUser?.uid && (
+                            {member.uid === sessionUser?.id && (
                               <span className="text-[10px] text-muted-foreground">(você)</span>
                             )}
                           </div>

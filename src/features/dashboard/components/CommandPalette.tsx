@@ -34,7 +34,7 @@ export function CommandPalette() {
     {
       id: 'dashboard',
       icon: <LayoutDashboard size={14} />,
-      label: 'Ir para Dashboard',
+      label: 'Dashboard',
       sub: 'Navegação',
       action: () => { router.push(ROUTES.dashboard); closeCommandPalette() },
       section: 'Navegação',
@@ -73,7 +73,7 @@ export function CommandPalette() {
     {
       id: 'profile',
       icon: <User size={14} />,
-      label: 'Profile',
+      label: 'Perfil',
       action: () => { router.push(ROUTES.profile); closeCommandPalette() },
       section: 'Navegação',
     },

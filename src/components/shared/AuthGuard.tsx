@@ -5,30 +5,21 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth.store'
 import { ROUTES } from '@/constants'
 
-const PUBLIC_ROUTES = ['/auth/login', '/auth/register']
+const PUBLIC_ROUTES = ['/auth/login', '/auth/register', '/auth/callback', '/auth/reset']
 
-interface AuthGuardProps {
-  children: React.ReactNode
-}
-
-export function AuthGuard({ children }: AuthGuardProps) {
+export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { initialized, firebaseUser, loading } = useAuthStore()
+  const { initialized, sessionUser, loading } = useAuthStore()
 
   const isPublic = PUBLIC_ROUTES.some((r) => pathname.startsWith(r))
 
   useEffect(() => {
     if (!initialized) return
+    if (!sessionUser && !isPublic) router.replace(ROUTES.login)
+    else if (sessionUser && isPublic) router.replace(ROUTES.dashboard)
+  }, [initialized, sessionUser, isPublic, router])
 
-    if (!firebaseUser && !isPublic) {
-      router.replace(ROUTES.login)
-    } else if (firebaseUser && isPublic) {
-      router.replace(ROUTES.dashboard)
-    }
-  }, [initialized, firebaseUser, isPublic, router])
-
-  // Still initializing — show full-screen loader
   if (!initialized || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -50,9 +41,8 @@ export function AuthGuard({ children }: AuthGuardProps) {
     )
   }
 
-  // Redirect pending — don't flash protected content
-  if (!firebaseUser && !isPublic) return null
-  if (firebaseUser && isPublic) return null
+  if (!sessionUser && !isPublic) return null
+  if (sessionUser && isPublic) return null
 
   return <>{children}</>
 }

@@ -1,25 +1,21 @@
-import { Timestamp } from 'firebase/firestore'
+// ── Scalar aliases — no Firebase dependency ───────────────────────────────────
+export type ISODate = string   // e.g. "2025-06-01T12:00:00Z"
 
 // ── User ──────────────────────────────────────────────────────────────────────
 export interface User {
-  uid: string
+  uid: string          // maps to Supabase auth.users.id
+  id: string           // same as uid, convenience alias
   email: string
   displayName: string
   photoURL: string | null
-  createdAt: Timestamp
-  updatedAt: Timestamp
+  createdAt: ISODate
+  updatedAt: ISODate
 }
 
 // ── Project ───────────────────────────────────────────────────────────────────
 export type ProjectColor =
-  | '#6366f1'
-  | '#22c55e'
-  | '#f59e0b'
-  | '#ef4444'
-  | '#3b82f6'
-  | '#a855f7'
-  | '#ec4899'
-  | '#14b8a6'
+  | '#6366f1' | '#22c55e' | '#f59e0b' | '#ef4444'
+  | '#3b82f6' | '#a855f7' | '#ec4899' | '#14b8a6'
 
 export interface Project {
   id: string
@@ -29,9 +25,9 @@ export interface Project {
   coverURL: string | null
   ownerId: string
   memberIds: string[]
-  createdAt: Timestamp
-  updatedAt: Timestamp
-  dueDate: Timestamp | null
+  createdAt: ISODate
+  updatedAt: ISODate
+  dueDate: ISODate | null
   archived: boolean
 }
 
@@ -45,7 +41,6 @@ export interface ProjectWithMeta extends Project {
 
 // ── Task ──────────────────────────────────────────────────────────────────────
 export type TaskStatus = 'Backlog' | 'Todo' | 'In Progress' | 'Review' | 'Done'
-
 export type TaskPriority = 'urgent' | 'high' | 'medium' | 'low'
 
 export interface Task {
@@ -58,12 +53,12 @@ export interface Task {
   label: string
   assigneeId: string | null
   reporterId: string
-  dueDate: Timestamp | null
-  completedAt: Timestamp | null
+  dueDate: ISODate | null
+  completedAt: ISODate | null
   order: number
   attachments: Attachment[]
-  createdAt: Timestamp
-  updatedAt: Timestamp
+  createdAt: ISODate
+  updatedAt: ISODate
 }
 
 export interface TaskWithMeta extends Task {
@@ -80,8 +75,8 @@ export interface Comment {
   projectId: string
   authorId: string
   content: string
-  createdAt: Timestamp
-  updatedAt: Timestamp
+  createdAt: ISODate
+  updatedAt: ISODate
   edited: boolean
 }
 
@@ -93,12 +88,8 @@ export interface CommentWithAuthor extends Comment {
 
 // ── Notification ──────────────────────────────────────────────────────────────
 export type NotificationType =
-  | 'task_assigned'
-  | 'task_overdue'
-  | 'comment_added'
-  | 'project_invite'
-  | 'task_completed'
-  | 'task_status_changed'
+  | 'task_assigned' | 'task_overdue' | 'comment_added'
+  | 'project_invite' | 'task_completed' | 'task_status_changed'
 
 export interface AppNotification {
   id: string
@@ -110,7 +101,7 @@ export interface AppNotification {
   taskId: string | null
   projectId: string | null
   actorId: string | null
-  createdAt: Timestamp
+  createdAt: ISODate
 }
 
 // ── Attachment ────────────────────────────────────────────────────────────────
@@ -120,36 +111,15 @@ export interface Attachment {
   url: string
   size: number
   type: string
-  uploadedAt: Timestamp
+  uploadedAt: ISODate
   uploadedBy: string
-}
-
-// ── Activity ──────────────────────────────────────────────────────────────────
-export type ActivityAction =
-  | 'created'
-  | 'updated'
-  | 'deleted'
-  | 'status_changed'
-  | 'assigned'
-  | 'commented'
-  | 'completed'
-  | 'moved'
-
-export interface Activity {
-  id: string
-  projectId: string
-  taskId: string | null
-  actorId: string
-  action: ActivityAction
-  meta: Record<string, string>
-  createdAt: Timestamp
 }
 
 // ── Kanban ────────────────────────────────────────────────────────────────────
 export interface KanbanColumn {
   id: TaskStatus
   title: TaskStatus
-  tasks: TaskWithMeta[]
+  tasks: Task[]
   color: string
 }
 
@@ -200,17 +170,10 @@ export interface RegisterInput {
   confirmPassword: string
 }
 
-// ── API Responses ─────────────────────────────────────────────────────────────
+// ── Responses ─────────────────────────────────────────────────────────────────
 export interface ApiResponse<T> {
   data: T | null
   error: string | null
-}
-
-export interface PaginatedResponse<T> {
-  data: T[]
-  total: number
-  hasMore: boolean
-  cursor: string | null
 }
 
 // ── Filters ───────────────────────────────────────────────────────────────────
