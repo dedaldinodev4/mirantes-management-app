@@ -103,9 +103,9 @@ export default function RegisterPage() {
                 </p>
                 <ol className="text-[11px] text-muted-foreground space-y-1 leading-relaxed list-none">
                   <li>1. Abrir o <strong className="text-foreground">Painel de Suporte</strong></li>
-                  <li>2. Vá para <strong className="text-foreground">Authentication → Providers</strong></li>
+                  <li>2. Vá para <strong className="text-foreground">Autenticação → Provedores</strong></li>
                   <li>3. Clique <strong className="text-foreground">Email</strong></li>
-                  <li>4. Desative <strong className="text-foreground">"Confirmar e-mail"</strong> e Salve</li>
+                  <li>4. Desactive <strong className="text-foreground">"Confirmar e-mail"</strong> e Salve</li>
                 </ol>
               </div>
 
@@ -113,7 +113,7 @@ export default function RegisterPage() {
                 href={ROUTES.login}
                 className="flex w-full items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-all"
               >
-                Ir par Login
+                Ir ao Login
               </Link>
 
               <button

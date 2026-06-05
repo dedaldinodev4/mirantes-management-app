@@ -45,7 +45,7 @@ export function useDashboard() {
           setTasks(allTasks.flat())
         }
       } catch (err) {
-        console.error('Dashboard load error:', err)
+        console.error('Dashboard erro ao carregar:', err)
       } finally {
         setLoading(false)
       }
