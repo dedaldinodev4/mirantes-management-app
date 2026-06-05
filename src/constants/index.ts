@@ -31,25 +31,25 @@ export const PRIORITY_CONFIG: Record<
   { label: string; color: string; bg: string; icon: string }
 > = {
   urgent: {
-    label: 'Urgent',
+    label: 'Urgente',
     color: 'text-red-400',
     bg: 'bg-red-500/10',
     icon: '🔴',
   },
   high: {
-    label: 'High',
+    label: 'Alta',
     color: 'text-amber-400',
     bg: 'bg-amber-500/10',
     icon: '🟠',
   },
   medium: {
-    label: 'Medium',
+    label: 'Média',
     color: 'text-blue-400',
     bg: 'bg-blue-500/10',
     icon: '🔵',
   },
   low: {
-    label: 'Low',
+    label: 'Baixa',
     color: 'text-emerald-400',
     bg: 'bg-emerald-500/10',
     icon: '🟢',
