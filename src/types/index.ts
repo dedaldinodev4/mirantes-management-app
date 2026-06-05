@@ -185,3 +185,13 @@ export interface TaskFilters {
   search?: string
   overdue?: boolean
 }
+
+//* ── Classify every possible Supabase error *//
+export type ErrorKind =
+  | 'EMAIL_NOT_CONFIRMED'
+  | 'EMAIL_RATE_LIMIT'
+  | 'EMAIL_ALREADY_EXISTS'
+  | 'INVALID_CREDENTIALS'
+  | 'WEAK_PASSWORD'
+  | 'NETWORK'
+  | 'GENERIC'

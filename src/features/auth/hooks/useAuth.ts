@@ -14,77 +14,14 @@ import {
 } from '@/services/supabase/auth'
 import { ROUTES } from '@/constants'
 import type { LoginInput, RegisterInput } from '@/types'
+import { classifyError } from '@/utils'
 
-//* ── Classify every possible Supabase error *//
-type ErrorKind =
-  | 'EMAIL_NOT_CONFIRMED'
-  | 'EMAIL_RATE_LIMIT'
-  | 'EMAIL_ALREADY_EXISTS'
-  | 'INVALID_CREDENTIALS'
-  | 'WEAK_PASSWORD'
-  | 'NETWORK'
-  | 'GENERIC'
-
-function classifyError(err: any): { kind: ErrorKind; message: string } {
-  const raw = (
-    err?.message ??
-    err?.error_description ??
-    err?.msg ??
-    ''
-  ).toLowerCase()
-
-  const code = (err?.code ?? err?.error ?? '').toLowerCase()
-  const status = err?.status ?? err?.statusCode ?? 0
-
-  // Email not confirmed
-  if (raw.includes('email not confirmed') || raw.includes('email_not_confirmed'))
-    return { kind: 'EMAIL_NOT_CONFIRMED', message: '' }
-
-  // Rate limit — Supabase has MANY different messages for this
-  if (
-    raw.includes('for security purposes') ||
-    raw.includes('rate limit') ||
-    raw.includes('too many requests') ||
-    raw.includes('over_email_send_rate_limit') ||
-    raw.includes('email rate limit') ||
-    raw.includes('request this after') ||   // "you can only request this after X seconds"
-    raw.includes('wait') ||                 // catch-all for timing messages
-    code === 'over_email_send_rate_limit' ||
-    code === 'too_many_requests' ||
-    status === 429
-  ) {
-    return { kind: 'EMAIL_RATE_LIMIT', message: '' }
-  }
-
-  // Duplicate email
-  if (
-    raw === 'email_already_exists' ||
-    raw.includes('already exists') ||
-    raw.includes('already registered') ||
-    raw.includes('user already')
-  )
-    return { kind: 'EMAIL_ALREADY_EXISTS', message: 'An account with this email already exists.' }
-
-  // Bad credentials
-  if (raw.includes('invalid login') || raw.includes('invalid credentials') || raw.includes('wrong password'))
-    return { kind: 'INVALID_CREDENTIALS', message: 'Invalid email or password.' }
-
-  // Weak password
-  if (raw.includes('password should be') || raw.includes('password must be'))
-    return { kind: 'WEAK_PASSWORD', message: 'Password must be at least 6 characters.' }
-
-  // Network
-  if (raw.includes('fetch') || raw.includes('network') || raw.includes('failed to fetch'))
-    return { kind: 'NETWORK', message: 'Network error. Check your connection and try again.' }
-
-  return { kind: 'GENERIC', message: err?.message || 'Something went wrong. Please try again.' }
-}
 
 export function useAuth() {
   const router = useRouter()
   const { sessionUser, profile, loading, initialized, setProfile } = useAuthStore()
 
-  // ── Login ─────────────────────────────────────────────────────────────────
+  //* ── Login *//
   const handleLogin = async (input: LoginInput) => {
     try {
       await login(input)
@@ -95,13 +32,12 @@ export function useAuth() {
         // Login page shows inline resend UI — attach flag so page can check
         throw Object.assign(err, { isNotConfirmed: true })
       }
-      toast.error(message || 'Login failed. Please try again.')
+      toast.error(message || 'Falha no login. Por favor tente novamente.')
       throw err
     }
   }
 
-  // ── Register ──────────────────────────────────────────────────────────────
-  // NEVER throws to the page — always returns a result object
+  //* ── Register *//
   const handleRegister = async (
     input: RegisterInput,
   ): Promise<{ needsConfirmation: boolean; rateLimited?: boolean }> => {
@@ -113,108 +49,108 @@ export function useAuth() {
         return { needsConfirmation: true }
       }
 
-      // Email confirmation disabled → session exists, onAuthStateChange fires
-      // and AuthProvider updates the store. Just redirect.
-      toast.success('Welcome to Flow!', { description: `Logged in as ${input.email}` })
+      toast.success('Bem-vindo ao Flow!', { description: `Conta criada para ${input.email}` })
       router.push(ROUTES.dashboard)
       return { needsConfirmation: false }
     } catch (err: any) {
       const { kind, message } = classifyError(err)
 
       if (kind === 'EMAIL_RATE_LIMIT') {
-        // Account WAS created — just couldn't send the email
-        // Show pending screen with rate-limit explanation
-        toast.error('Email rate limit reached', {
+        toast.error('Limite de emails atingido', {
           description:
-            'Supabase free tier allows only 2 confirmation emails per hour. ' +
-            'Your account was created — disable "Confirm email" in Supabase to log in now.',
+            `O Supabase gratuito permite apenas 2 emails de confirmação por hora. 
+            A sua conta foi criada — desative "Confirmar email" no painel do 
+            Supabase para entrar já.`,
           duration: 10000,
         })
         return { needsConfirmation: true, rateLimited: true }
       }
 
       if (kind === 'EMAIL_ALREADY_EXISTS') {
-        toast.error('Account already exists', {
-          description: 'An account with this email already exists. Try logging in instead.',
+        toast.error('Conta já existente', {
+          description: 'Já existe uma conta com este email. Tente fazer login.'
         })
         return { needsConfirmation: false }
       }
 
       toast.error(message)
-      // Return instead of throw so the page doesn't crash
       return { needsConfirmation: false }
     }
   }
 
-  // ── Resend confirmation ───────────────────────────────────────────────────
+  //* ── Resend confirmation *//
   const handleResendConfirmation = async (email: string) => {
     try {
       await resendConfirmation(email)
-      toast.success('Confirmation email sent!', { description: 'Check your inbox.' })
+      toast.success('Email enviado!', {
+        description: 'Verifique a sua caixa de entrada.'
+      })
     } catch (err: any) {
       const { kind } = classifyError(err)
       if (kind === 'EMAIL_RATE_LIMIT') {
-        toast.error('Rate limit reached', {
+        toast.error('Limite atingido', {
           description:
-            'Please wait before requesting another email, or go to Supabase Dashboard → ' +
-            'Authentication → Providers → Email and disable "Confirm email".',
+            `Aguarde antes de solicitar outro email, ou desative 
+            a confirmação no painel do Supabase.`,
           duration: 8000,
         })
       } else {
-        toast.error('Failed to resend. Please try again later.')
+        toast.error('Falha ao reenviar. Tente novamente mais tarde.')
       }
     }
   }
 
-  // ── Google ────────────────────────────────────────────────────────────────
+  //* ── Google *//
   const handleGoogleSignIn = async () => {
     try {
       await signInWithGoogle()
     } catch {
-      toast.error('Google sign-in failed. Please try again.')
+      toast.error('Falha no login com Google. Por favor tente novamente.')
     }
   }
 
-  // ── Sign out ──────────────────────────────────────────────────────────────
+  //* ── Sign out *//
   const handleSignOut = async () => {
     try {
       await signOut()
       router.push(ROUTES.login)
     } catch {
-      toast.error('Failed to sign out.')
+      toast.error('Falha ao terminar sessão.')
     }
   }
 
-  // ── Reset password ────────────────────────────────────────────────────────
+  //* ── Reset password *//
   const handleResetPassword = async (email: string) => {
     try {
       await resetPassword(email)
-      toast.success('Reset email sent!', { description: 'Check your inbox.' })
+      toast.success('Email enviado!', {
+        description: 'Verifique a sua caixa de entrada.'
+      })
     } catch (err: any) {
       const { kind, message } = classifyError(err)
-      toast.error(kind === 'EMAIL_RATE_LIMIT' ? 'Rate limit reached. Please wait before trying again.' : message)
+      toast.error(kind === 'EMAIL_RATE_LIMIT' ? 'Limite atingido. Aguarde antes de tentar novamente.' : message)
     }
   }
 
-  // ── Update profile ────────────────────────────────────────────────────────
+  //* ── Update profile *//
   const handleUpdateProfile = async (data: { displayName?: string; email?: string }) => {
     if (!sessionUser) return
     try {
       await updateUserProfile(sessionUser.id, data)
       const updated = await getUserProfile(sessionUser.id)
       if (updated) setProfile(updated)
-      toast.success('Profile updated successfully')
+      toast.success('Perfil atualizado com sucesso')
     } catch (err: any) {
       toast.error(classifyError(err).message)
       throw err
     }
   }
 
-  // ── Change password ───────────────────────────────────────────────────────
+  //* ── Change password *//
   const handleChangePassword = async (current: string, newPassword: string) => {
     try {
       await changePassword(current, newPassword)
-      toast.success('Password changed successfully')
+      toast.success('Senha alterada com sucesso')
     } catch (err: any) {
       toast.error(classifyError(err).message)
       throw err

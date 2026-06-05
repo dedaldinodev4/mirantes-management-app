@@ -8,7 +8,7 @@ import {
   isTomorrow,
   parseISO,
 } from 'date-fns'
-import type { ISODate } from '@/types'
+import type { ErrorKind, ISODate } from '@/types'
 
 
 //* ── Tailwind class merger *//
@@ -123,5 +123,38 @@ export function groupBy<T>(array: T[], key: keyof T): Record<string, T[]> {
     },
     {} as Record<string, T[]>,
   )
+}
+
+//* ── Classify every possible Supabase error *//
+export function classifyError(err: any): { kind: ErrorKind; message: string } {
+  const raw = (err?.message ?? err?.error_description ?? err?.msg ?? '').toLowerCase()
+  const code = (err?.code ?? err?.error ?? '').toLowerCase()
+  const status = err?.status ?? err?.statusCode ?? 0
+
+  if (raw.includes('email not confirmed') || raw.includes('email_not_confirmed'))
+    return { kind: 'EMAIL_NOT_CONFIRMED', message: '' }
+
+  if (
+    raw.includes('for security purposes') || raw.includes('rate limit') ||
+    raw.includes('too many requests') || raw.includes('over_email_send_rate_limit') ||
+    raw.includes('email rate limit') || raw.includes('request this after') ||
+    raw.includes('wait') || code === 'over_email_send_rate_limit' ||
+    code === 'too_many_requests' || status === 429
+  ) return { kind: 'EMAIL_RATE_LIMIT', message: '' }
+
+  if (raw === 'email_already_exists' || raw.includes('already exists') ||
+    raw.includes('already registered') || raw.includes('user already'))
+    return { kind: 'EMAIL_ALREADY_EXISTS', message: 'Já existe uma conta com este email.' }
+
+  if (raw.includes('invalid login') || raw.includes('invalid credentials') || raw.includes('wrong password'))
+    return { kind: 'INVALID_CREDENTIALS', message: 'Email ou palavra-passe incorretos.' }
+
+  if (raw.includes('password should be') || raw.includes('password must be'))
+    return { kind: 'WEAK_PASSWORD', message: 'A palavra-passe deve ter pelo menos 6 caracteres.' }
+
+  if (raw.includes('fetch') || raw.includes('network') || raw.includes('failed to fetch'))
+    return { kind: 'NETWORK', message: 'Erro de rede. Verifique a sua ligação e tente novamente.' }
+
+  return { kind: 'GENERIC', message: err?.message || 'Algo correu mal. Por favor tente novamente.' }
 }
 
