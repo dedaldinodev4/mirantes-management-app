@@ -10,12 +10,13 @@ import {
 } from 'date-fns'
 import type { ISODate } from '@/types'
 
-// ── Tailwind class merger ─────────────────────────────────────────────────────
+
+//* ── Tailwind class merger *//
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// ── Date utilities ────────────────────────────────────────────────────────────
+//* ── Date utilities *//
 export function toDate(value: ISODate | string | null | undefined): Date | null {
   if (!value) return null
   try { return parseISO(value) } catch { return null }
@@ -42,14 +43,14 @@ export function isOverdue(value: ISODate | string | null | undefined): boolean {
 export function getDueDateLabel(value: ISODate | string | null | undefined): { label: string; urgent: boolean } {
   const d = toDate(value)
   if (!d) return { label: '—', urgent: false }
-  if (isToday(d)) return { label: 'Today', urgent: true }
-  if (isTomorrow(d)) return { label: 'Tomorrow', urgent: false }
+  if (isToday(d)) return { label: 'Hoje', urgent: true }
+  if (isTomorrow(d)) return { label: 'Amanhã', urgent: false }
   if (isPast(d)) return { label: formatDate(value, 'MMM d'), urgent: true }
   return { label: formatDate(value, 'MMM d'), urgent: false }
 }
 
 
-// ── String utilities ──────────────────────────────────────────────────────────
+//* ── String utilities *//
 export function getInitials(name: string): string {
   return name
     .split(' ')
@@ -71,7 +72,7 @@ export function slugify(str: string): string {
     .replace(/(^-|-$)/g, '')
 }
 
-// ── Number utilities ──────────────────────────────────────────────────────────
+//* ── Number utilities *//
 export function calcProgress(total: number, completed: number): number {
   if (total === 0) return 0
   return Math.round((completed / total) * 100)
@@ -85,7 +86,7 @@ export function formatBytes(bytes: number): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`
 }
 
-// ── Color utilities ───────────────────────────────────────────────────────────
+//* ── Color utilities *//
 export function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
   return result
@@ -104,7 +105,7 @@ export function getContrastColor(hex: string): 'white' | 'black' {
   return luminance > 0.5 ? 'black' : 'white'
 }
 
-// ── Array utilities ───────────────────────────────────────────────────────────
+//* ── Array utilities *//
 export function reorder<T>(list: T[], startIndex: number, endIndex: number): T[] {
   const result = [...list]
   const [removed] = result.splice(startIndex, 1)

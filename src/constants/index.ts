@@ -1,6 +1,6 @@
 import type { TaskStatus, TaskPriority, ProjectColor } from '@/types'
 
-// ── Kanban Columns ────────────────────────────────────────────────────────────
+//* ── Kanban Columns *//
 export const KANBAN_COLUMNS: TaskStatus[] = [
   'Backlog',
   'Todo',
@@ -25,7 +25,7 @@ export const COLUMN_BG: Record<TaskStatus, string> = {
   Done: 'bg-emerald-500/10 text-emerald-400',
 }
 
-// ── Priority ──────────────────────────────────────────────────────────────────
+//* ── Priority *//
 export const PRIORITY_CONFIG: Record<
   TaskPriority,
   { label: string; color: string; bg: string; icon: string }
@@ -56,7 +56,7 @@ export const PRIORITY_CONFIG: Record<
   },
 }
 
-// ── Project Colors ────────────────────────────────────────────────────────────
+//* ── Project Colors *//
 export const PROJECT_COLORS: ProjectColor[] = [
   '#6366f1',
   '#22c55e',
@@ -68,7 +68,7 @@ export const PROJECT_COLORS: ProjectColor[] = [
   '#14b8a6',
 ]
 
-// ── Labels ────────────────────────────────────────────────────────────────────
+//* ── Labels *//
 export const TASK_LABELS = [
   'Frontend',
   'Backend',
@@ -108,7 +108,7 @@ export const NOTIF_PREFS = [
 ]
 
 
-// ── Routes ────────────────────────────────────────────────────────────────────
+//* ── Routes *//
 export const ROUTES = {
   home: '/',
   login: '/auth/login',
@@ -122,7 +122,7 @@ export const ROUTES = {
   profile: '/profile',
 } as const
 
-// ── Firebase Collections ──────────────────────────────────────────────────────
+//* ── Firebase Collections *//
 export const COLLECTIONS = {
   users: 'users',
   projects: 'projects',
@@ -132,5 +132,5 @@ export const COLLECTIONS = {
   activities: 'activities',
 } as const
 
-// ── Pagination ────────────────────────────────────────────────────────────────
+//* ── Pagination *//
 export const PAGE_SIZE = 20

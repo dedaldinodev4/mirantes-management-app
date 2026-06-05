@@ -1,7 +1,7 @@
-// ── Scalar aliases — no Firebase dependency ───────────────────────────────────
+
 export type ISODate = string   // e.g. "2025-06-01T12:00:00Z"
 
-// ── User ──────────────────────────────────────────────────────────────────────
+//* ── User *//
 export interface User {
   uid: string          // maps to Supabase auth.users.id
   id: string           // same as uid, convenience alias
@@ -12,7 +12,7 @@ export interface User {
   updatedAt: ISODate
 }
 
-// ── Project ───────────────────────────────────────────────────────────────────
+//* ── Project *//
 export type ProjectColor =
   | '#6366f1' | '#22c55e' | '#f59e0b' | '#ef4444'
   | '#3b82f6' | '#a855f7' | '#ec4899' | '#14b8a6'
@@ -39,7 +39,7 @@ export interface ProjectWithMeta extends Project {
   owner: User
 }
 
-// ── Task ──────────────────────────────────────────────────────────────────────
+//* ── Task *//
 export type TaskStatus = 'Backlog' | 'Todo' | 'In Progress' | 'Review' | 'Done'
 export type TaskPriority = 'urgent' | 'high' | 'medium' | 'low'
 
@@ -68,7 +68,7 @@ export interface TaskWithMeta extends Task {
   isOverdue: boolean
 }
 
-// ── Comment ───────────────────────────────────────────────────────────────────
+//* ── Comment *//
 export interface Comment {
   id: string
   taskId: string
@@ -86,7 +86,7 @@ export interface CommentWithAuthor extends Comment {
   author: User
 }
 
-// ── Notification ──────────────────────────────────────────────────────────────
+//* ── Notification *//
 export type NotificationType =
   | 'task_assigned' | 'task_overdue' | 'comment_added'
   | 'project_invite' | 'task_completed' | 'task_status_changed'
@@ -104,7 +104,7 @@ export interface AppNotification {
   createdAt: ISODate
 }
 
-// ── Attachment ────────────────────────────────────────────────────────────────
+//* ── Attachment *//
 export interface Attachment {
   id: string
   name: string
@@ -115,7 +115,7 @@ export interface Attachment {
   uploadedBy: string
 }
 
-// ── Kanban ────────────────────────────────────────────────────────────────────
+//* ── Kanban *//
 export interface KanbanColumn {
   id: TaskStatus
   title: TaskStatus
@@ -123,7 +123,7 @@ export interface KanbanColumn {
   color: string
 }
 
-// ── Forms ─────────────────────────────────────────────────────────────────────
+//* ── Forms *//
 export interface CreateTaskInput {
   title: string
   description?: string
@@ -157,7 +157,7 @@ export interface CreateCommentInput {
   content: string
 }
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
+//* ── Auth *//
 export interface LoginInput {
   email: string
   password: string
@@ -170,13 +170,13 @@ export interface RegisterInput {
   confirmPassword: string
 }
 
-// ── Responses ─────────────────────────────────────────────────────────────────
+//* ── Responses *//
 export interface ApiResponse<T> {
   data: T | null
   error: string | null
 }
 
-// ── Filters ───────────────────────────────────────────────────────────────────
+//* ── Filters *//
 export interface TaskFilters {
   status?: TaskStatus[]
   priority?: TaskPriority[]
