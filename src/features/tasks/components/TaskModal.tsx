@@ -6,7 +6,7 @@ import {
   X, Calendar, Tag, Flag, Trash2, MessageSquare, Loader2,
   Send,
   UserCircle,
-  Check,
+  Check, Lock,
   Pencil
 } from 'lucide-react'
 
@@ -23,7 +23,7 @@ import {
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll'
 import { useEscapeKey } from '../hooks/useEscapeKey'
 import { useAuthStore } from '@/stores/auth.store'
-import type { UpdateTaskInput, TaskComment, User } from '@/types'
+import type { UpdateTaskInput, TaskComment, User, Task } from '@/types'
 import { getUserProfiles } from '@/services/supabase/auth'
 import { Avatar } from '@/components/shared/Avatar'
 import { taskSchema, type TaskFormData } from '../schemas'
@@ -37,9 +37,15 @@ interface TaskModalProps {
   onClose: () => void
   onUpdate: (taskId: string, input: Partial<UpdateTaskInput>) => Promise<void>
   onDelete: (taskId: string) => Promise<void>
+  canEdit?: (task: Pick<Task, 'reporterId' | 'assigneeId'>) => boolean
+  canDelete?: (task: Pick<Task, 'reporterId' | 'assigneeId'>) => boolean
 }
 
-export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskModalProps) {
+export function TaskModal({
+  taskId, open, onClose, onUpdate, onDelete,
+  canEdit = () => true,
+  canDelete = () => true,
+}: TaskModalProps) {
   const { tasks, projects } = useProjectsStore()
   const { sessionUser, profile } = useAuthStore()
   const task = tasks.find((t) => t.id === taskId) ?? null
@@ -194,6 +200,10 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
   }
 
   const handleAssigneeChange = async (assigneeId: string) => {
+    if (!userCanEdit) {
+      toast.error('Sem permissão para alterar o responsável.')
+      return
+    }
     setUpdatingAssignee(true)
     try {
       await onUpdate(task.id, { assigneeId: assigneeId || undefined })
@@ -246,9 +256,11 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
     }
   }
 
+  const userCanEdit = canEdit(task)
+  const userCanDelete = canDelete(task)
   const overdue = isOverdue(task.dueDate)
   const dueLabel = getDueDateLabel(task.dueDate)
-  const labelColor = LABEL_COLORS[task?.label ?? ''] ?? { bg: 'bg-secondary', text: 'text-muted-foreground' }
+  const labelColor = LABEL_COLORS[task.label] ?? { bg: 'bg-secondary', text: 'text-muted-foreground' }
   const assignee = members.find((m) => m.uid === task.assigneeId) ?? null
 
   const inputCls = (hasError?: boolean) => cn(
@@ -267,7 +279,6 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
             className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
             onClick={() => { if (!editing) onClose() }}
           />
-
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
             <motion.div
               initial={{ opacity: 0, scale: 0.96, y: 12 }}
@@ -282,16 +293,9 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
               <div className="flex items-start gap-3 border-b border-border px-5 py-4 flex-shrink-0">
                 <div className="flex-1 min-w-0">
                   {editing ? (
-                    <input
-                      {...register('title')}
-                      autoFocus
-                      className={cn(inputCls(!!errors.title), 'font-semibold')}
-                      placeholder="Título da tarefa"
-                    />
+                    <input {...register('title')} autoFocus className={cn(inputCls(!!errors.title), 'font-semibold')} placeholder="Título da tarefa" />
                   ) : (
-                    <h2 className="text-sm font-semibold text-foreground leading-relaxed">
-                      {task.title}
-                    </h2>
+                    <h2 className="text-sm font-semibold text-foreground leading-relaxed">{task.title}</h2>
                   )}
                   {!editing && (
                     <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -302,70 +306,51 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
                         </span>
                       )}
                       {overdue && (
-                        <span className="inline-flex items-center rounded bg-red-500/10 px-1.5 py-0.5 text-[10px] font-medium text-red-400">
-                          ⚠ Em atraso
-                        </span>
+                        <span className="inline-flex items-center rounded bg-red-500/10 px-1.5 py-0.5 text-[10px] font-medium text-red-400">⚠ Em atraso</span>
                       )}
                     </div>
                   )}
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
-                  {!editing ? (
-                    <button
-                      onClick={() => setEditing(true)}
-                      title="Editar tarefa"
-                      className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
-                    >
+                  {/* Edit button — only have permission */}
+                  {!editing && userCanEdit && (
+                    <button onClick={() => setEditing(true)} title="Editar tarefa"
+                      className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-all">
                       <Pencil size={12} />
                     </button>
-                  ) : (
-                    <button
-                      onClick={() => setEditing(false)}
-                      title="Cancelar edição"
-                      className="flex h-7 items-center gap-1 rounded-lg border border-border px-2 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
-                    >
+                  )}
+                  {!editing && !userCanEdit && (
+                    <div title="Sem permissão para editar"
+                      className="flex h-7 w-7 items-center justify-center rounded-lg border border-border/40 text-muted-foreground/30 cursor-not-allowed">
+                      <Lock size={12} />
+                    </div>
+                  )}
+                  {editing && (
+                    <button onClick={() => setEditing(false)}
+                      className="flex h-7 items-center gap-1 rounded-lg border border-border px-2 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-all">
                       <X size={11} /> Cancelar
                     </button>
                   )}
-                  <button
-                    onClick={onClose}
-                    className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
-                  >
+                  <button onClick={onClose}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-all">
                     <X size={13} />
                   </button>
                 </div>
               </div>
 
               {/* Body */}
-              <form
-                onSubmit={editing ? handleSubmit(handleSaveEdit) : undefined}
-                className="flex flex-1 overflow-hidden min-h-0"
-              >
-                {/* Main */}
+              <div className="flex flex-1 overflow-hidden min-h-0">
                 <div className="flex-1 overflow-y-auto p-5 space-y-5">
-
-                  {/* ── EDIT MODE ── */}
                   {editing ? (
+                    /* ── EDIT MODE ── */
                     <>
-                      {/* Description */}
                       <div>
-                        <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-widest text-muted-foreground/60">
-                          Descrição
-                        </label>
-                        <textarea
-                          {...register('description')}
-                          rows={3}
-                          placeholder="Descrição da tarefa…"
-                          className={cn(inputCls(), 'resize-none')}
-                        />
+                        <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-widest text-muted-foreground/60">Descrição</label>
+                        <textarea {...register('description')} rows={3} placeholder="Descrição da tarefa…" className={cn(inputCls(), 'resize-none')} />
                       </div>
-
-                      {/* Priority + Status */}
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-widest text-muted-foreground/60">
-                            Prioridade
-                          </label>
+                          <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-widest text-muted-foreground/60">Prioridade</label>
                           <select {...register('priority')} className={inputCls()}>
                             <option value="urgent">🔴 Urgente</option>
                             <option value="high">🟠 Alta</option>
@@ -374,112 +359,79 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
                           </select>
                         </div>
                         <div>
-                          <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-widest text-muted-foreground/60">
-                            Etiqueta
-                          </label>
+                          <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-widest text-muted-foreground/60">Etiqueta</label>
                           <select {...register('label')} className={inputCls()}>
                             <option value="">Sem etiqueta</option>
-                            {TASK_LABELS.map((label) => (
-                              <option key={label} value={label}>{label}</option>
-                            ))}
+                            {TASK_LABELS.map((label) => <option key={label} value={label}>{label}</option>)}
                           </select>
                         </div>
                       </div>
-
-                      {/* Assignee + Due date */}
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-widest text-muted-foreground/60">
-                            Responsável
-                          </label>
+                          <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-widest text-muted-foreground/60">Responsável</label>
                           <select {...register('assigneeId')} className={inputCls()}>
                             <option value="">Sem responsável</option>
-                            {members.map((m) => (
-                              <option key={m.uid} value={m.uid}>{m.displayName}</option>
-                            ))}
+                            {members.map((member) => <option key={member.uid} value={member.uid}>{member.displayName}</option>)}
                           </select>
                         </div>
                         <div>
-                          <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-widest text-muted-foreground/60">
-                            Data limite
-                          </label>
+                          <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-widest text-muted-foreground/60">Data limite</label>
                           <input {...register('dueDate')} type="date" className={inputCls()} />
                         </div>
                       </div>
                     </>
                   ) : (
+                    /* ── VIEW MODE ── */
                     <>
-                      {/* VIEW MODE — Description */}
                       <div>
                         <h3 className="mb-2 text-[11px] font-medium uppercase tracking-widest text-muted-foreground/60">Descrição</h3>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                          {task.description || 'Sem descrição.'}
-                        </p>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{task.description || 'Sem descrição.'}</p>
                       </div>
-
-                      {/* Status */}
                       <div>
                         <h3 className="mb-2 text-[11px] font-medium uppercase tracking-widest text-muted-foreground/60">Estado</h3>
                         <div className="flex flex-wrap gap-1.5">
-                          {(['Backlog', 'Todo', 'In Progress', 'Review', 'Done'] as const).map((s) => (
-                            <button
-                              key={s} type="button"
-                              onClick={() => handleStatusChange(s)}
-                              disabled={!!updatingStatus}
-                              className={cn(
-                                'flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-all disabled:cursor-not-allowed',
-                                task.status === s
-                                  ? 'border-transparent text-white'
-                                  : 'border-border text-muted-foreground hover:border-border/80 hover:text-foreground',
-                              )}
-                              style={task.status === s ? { background: COLUMN_COLORS[s] } : {}}
-                            >
-                              {updatingStatus === s && <Loader2 size={10} className="animate-spin" />}
-                              {s}
+                          {(['Backlog', 'Todo', 'In Progress', 'Review', 'Done'] as const).map((status) => (
+                            <button key={status} type="button" onClick={() => handleStatusChange(status)} disabled={!!updatingStatus}
+                              className={cn('flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-all disabled:cursor-not-allowed',
+                                task.status === status ? 'border-transparent text-white' : 'border-border text-muted-foreground hover:border-border/80 hover:text-foreground')}
+                              style={task.status === status ? { background: COLUMN_COLORS[status] } : {}}>
+                              {updatingStatus === status && <Loader2 size={10} className="animate-spin" />}
+                              {status}
                             </button>
                           ))}
                         </div>
                       </div>
-
                       {/* Comments */}
                       <div>
                         <h3 className="mb-3 text-[11px] font-medium uppercase tracking-widest text-muted-foreground/60">
                           Comentários {comments.length > 0 && `(${comments.length})`}
                         </h3>
-
                         {loadingComments ? (
                           <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
                             <Loader2 size={12} className="animate-spin" /> A carregar…
                           </div>
                         ) : comments.length > 0 ? (
                           <div className="mb-4 space-y-3">
-                            {comments.map((c) => {
-                              const isTemp = c.id.startsWith('temp-')
+                            {comments.map((comment) => {
+                              const isTemp = comment.id.startsWith('temp-')
                               return (
-                                <div key={c.id} className={cn('group flex gap-2.5', isTemp && 'opacity-60')}>
+                                <div key={comment.id} className={cn('group flex gap-2.5', isTemp && 'opacity-60')}>
                                   <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-[9px] font-semibold text-white">
-                                    {c.authorId === sessionUser?.id ? (profile?.displayName?.[0]?.toUpperCase() ?? '?') : '?'}
+                                    {comment.authorId === sessionUser?.id ? (profile?.displayName?.[0]?.toUpperCase() ?? '?') : '?'}
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-baseline gap-2">
                                       <span className="text-xs font-medium text-foreground">
-                                        {c.authorId === sessionUser?.id ? (profile?.displayName ?? 'Você') : 'Membro'}
+                                        {comment.authorId === sessionUser?.id ? (profile?.displayName ?? 'Você') : 'Membro'}
                                       </span>
-                                      {!isTemp && (
-                                        <span className="text-[10px] text-muted-foreground/60">
-                                          {formatRelative(c.createdAt)}{c.edited && ' · editado'}
-                                        </span>
-                                      )}
+                                      {!isTemp && <span className="text-[10px] text-muted-foreground/60">{formatRelative(comment.createdAt)}{comment.edited && ' · editado'}</span>}
                                       {isTemp && <span className="text-[10px] text-muted-foreground/60">a publicar…</span>}
                                     </div>
-                                    <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{c.content}</p>
+                                    <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{comment.content}</p>
                                   </div>
-                                  {c.authorId === sessionUser?.id && !isTemp && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeleteComment(c.id)}
-                                      className="flex-shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-destructive transition-all p-0.5"
-                                    >
+                                  {comment.authorId === sessionUser?.id && !isTemp && (
+                                    <button type="button" onClick={() => handleDeleteComment(comment.id)}
+                                      className="flex-shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-destructive transition-all p-0.5">
                                       <X size={11} />
                                     </button>
                                   )}
@@ -490,33 +442,18 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
                         ) : (
                           <p className="mb-4 text-xs text-muted-foreground/60">Ainda sem comentários.</p>
                         )}
-
                         <div className="flex gap-2">
                           <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-[9px] font-semibold text-white mt-1.5">
                             {profile?.displayName?.[0]?.toUpperCase() ?? '?'}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <textarea
-                              value={comment}
-                              onChange={(e) => setComment(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                                  e.preventDefault()
-                                  handlePostComment()
-                                }
-                              }}
-                              rows={2}
-                              placeholder="Escreva um comentário… (⌘Enter para publicar)"
-                              disabled={submittingComment}
-                              className="w-full resize-none rounded-lg border border-border/60 bg-secondary/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 outline-none transition-all focus:border-primary/60 focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
-                            />
+                            <textarea value={comment} onChange={(e) => setComment(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handlePostComment() } }}
+                              rows={2} placeholder="Escreva um comentário… (⌘Enter para publicar)" disabled={submittingComment}
+                              className="w-full resize-none rounded-lg border border-border/60 bg-secondary/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 outline-none transition-all focus:border-primary/60 focus:ring-2 focus:ring-primary/20 disabled:opacity-60" />
                             <div className="mt-1.5 flex justify-end">
-                              <button
-                                type="button"
-                                onClick={handlePostComment}
-                                disabled={!comment.trim() || submittingComment}
-                                className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                              >
+                              <button type="button" onClick={handlePostComment} disabled={!comment.trim() || submittingComment}
+                                className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
                                 <Send size={11} /> Publicar
                               </button>
                             </div>
@@ -530,17 +467,12 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
                 {/* Sidebar */}
                 <div className="hidden sm:flex w-48 flex-shrink-0 flex-col border-l border-border bg-secondary/20 p-4 space-y-4 overflow-y-auto">
                   <MetaRow icon={<Flag size={12} />} label="Prioridade">
-                    <span className={cn('text-xs', PRIORITY_CONFIG[task.priority].color)}>
-                      {PRIORITY_CONFIG[task.priority].label}
-                    </span>
+                    <span className={cn('text-xs', PRIORITY_CONFIG[task.priority].color)}>{PRIORITY_CONFIG[task.priority].label}</span>
                   </MetaRow>
-
                   <MetaRow icon={<UserCircle size={12} />} label="Responsável">
                     <div className="relative mt-1">
                       {updatingAssignee ? (
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Loader2 size={11} className="animate-spin" /> A atualizar…
-                        </div>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><Loader2 size={11} className="animate-spin" /> A atualizar…</div>
                       ) : assignee ? (
                         <div className="flex items-center gap-1.5">
                           <Avatar name={assignee.displayName} photoURL={assignee.photoURL} size="xs" />
@@ -549,82 +481,61 @@ export function TaskModal({ taskId, open, onClose, onUpdate, onDelete }: TaskMod
                       ) : (
                         <span className="text-xs text-muted-foreground">Sem responsável</span>
                       )}
-                      {!editing && (
-                        <select
-                          value={task.assigneeId ?? ''}
-                          onChange={(e) => handleAssigneeChange(e.target.value)}
-                          disabled={updatingAssignee}
-                          className="absolute inset-0 w-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                          title="Alterar responsável"
-                        >
+                      {!editing && userCanEdit && (
+                        <select value={task.assigneeId ?? ''} onChange={(e) => handleAssigneeChange(e.target.value)}
+                          disabled={updatingAssignee} className="absolute inset-0 w-full opacity-0 cursor-pointer disabled:cursor-not-allowed" title="Alterar responsável">
                           <option value="">Sem responsável</option>
-                          {members.map((m) => (
-                            <option key={m.uid} value={m.uid}>{m.displayName}</option>
-                          ))}
+                          {members.map((m) => <option key={m.uid} value={m.uid}>{m.displayName}</option>)}
                         </select>
                       )}
                     </div>
-                    {!editing && <p className="text-[10px] text-muted-foreground/50 mt-1">Clique para alterar</p>}
+                    {!editing && userCanEdit && <p className="text-[10px] text-muted-foreground/50 mt-1">Clique para alterar</p>}
                   </MetaRow>
-
                   <MetaRow icon={<Calendar size={12} />} label="Data limite">
                     <span className={cn('text-xs', dueLabel.urgent ? 'text-red-400' : 'text-muted-foreground')}>
                       {task.dueDate ? formatDate(task.dueDate) : '—'}
                     </span>
                   </MetaRow>
-
                   <MetaRow icon={<Tag size={12} />} label="Etiqueta">
-                    {task.label
-                      ? <span className={cn('text-xs font-medium', labelColor.text)}>{task.label}</span>
-                      : <span className="text-xs text-muted-foreground">—</span>}
+                    {task.label ? <span className={cn('text-xs font-medium', labelColor.text)}>{task.label}</span> : <span className="text-xs text-muted-foreground">—</span>}
                   </MetaRow>
-
                   <MetaRow icon={<MessageSquare size={12} />} label="Comentários">
                     <span className="text-xs text-muted-foreground">{comments.length}</span>
                   </MetaRow>
                 </div>
-              </form>
+              </div>
 
               {/* Footer */}
               <div className="flex items-center justify-between border-t border-border px-5 py-3 flex-shrink-0">
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  disabled={deleting || editing}
-                  className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-40 transition-all"
-                >
-                  {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
-                  {deleting ? 'A eliminar…' : 'Eliminar'}
-                </button>
+                {/* Delete button — only have permission */}
+                {userCanDelete ? (
+                  <button type="button" onClick={handleDelete} disabled={deleting || editing}
+                    className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-40 transition-all">
+                    {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                    {deleting ? 'A eliminar…' : 'Eliminar'}
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-muted-foreground/30" title="Sem permissão para eliminar">
+                    <Lock size={12} /> Sem permissão
+                  </div>
+                )}
 
                 <div className="flex gap-2">
                   {editing ? (
                     <>
-                      <button
-                        type="button"
-                        onClick={() => setEditing(false)}
-                        disabled={saving}
-                        className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-all disabled:opacity-60"
-                      >
+                      <button type="button" onClick={() => setEditing(false)} disabled={saving}
+                        className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-all disabled:opacity-60">
                         Cancelar
                       </button>
-                      <button
-                        type="submit"
-                        form=""
-                        onClick={handleSubmit(handleSaveEdit)}
-                        disabled={saving}
-                        className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-all"
-                      >
+                      <button type="button" onClick={handleSubmit(handleSaveEdit)} disabled={saving}
+                        className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-all">
                         {saving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
                         {saving ? 'A guardar…' : 'Guardar'}
                       </button>
                     </>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={onClose}
-                      className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
-                    >
+                    <button type="button" onClick={onClose}
+                      className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-all">
                       Fechar
                     </button>
                   )}

@@ -8,6 +8,8 @@ import {
   isTomorrow,
   parseISO,
 } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+
 import type { ErrorKind, ISODate } from '@/types'
 
 
@@ -25,13 +27,18 @@ export function toDate(value: ISODate | string | null | undefined): Date | null 
 export function formatDate(value: ISODate | string | null | undefined, pattern = 'MMM d, yyyy'): string {
   const d = toDate(value)
   if (!d) return '—'
-  return format(d, pattern)
+  return format(d, pattern,{
+    locale: ptBR,
+  })
 }
 
 export function formatRelative(value: ISODate | string | null | undefined): string {
   const d = toDate(value)
   if (!d) return '—'
-  return formatDistanceToNow(d, { addSuffix: true })
+  return formatDistanceToNow(d, 
+    { addSuffix: true, 
+      locale: ptBR,
+    })
 }
 
 export function isOverdue(value: ISODate | string | null | undefined): boolean {
