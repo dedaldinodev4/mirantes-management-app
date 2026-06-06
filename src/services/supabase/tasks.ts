@@ -1,25 +1,43 @@
 import { supabase } from './client'
-import type { 
-  Task, CreateTaskInput, 
-  UpdateTaskInput, TaskStatus, TaskFilters } from '@/types'
+import type {
+  Task, CreateTaskInput,
+  UpdateTaskInput, TaskStatus, TaskFilters
+} from '@/types'
+import type { TablesInsert, TablesUpdate } from './database.types'
 import { isOverdue } from '@/utils'
 
 //* ── Map DB row → app Task *//
-function rowToTask(row: any): Task {
+function rowToTask(row: {
+  id: string
+  project_id: string
+  title: string
+  description: string
+  status: string
+  priority: string
+  label: string
+  assignee_id: string | null
+  reporter_id: string
+  due_date: string | null
+  completed_at: string | null
+  order: number
+  attachments: unknown
+  created_at: string
+  updated_at: string
+}): Task {
   return {
     id: row.id,
     projectId: row.project_id,
     title: row.title,
     description: row.description ?? '',
     status: row.status as TaskStatus,
-    priority: row.priority,
+    priority: row.priority as Task['priority'],
     label: row.label ?? '',
     assigneeId: row.assignee_id ?? null,
     reporterId: row.reporter_id,
     dueDate: row.due_date ?? null,
     completedAt: row.completed_at ?? null,
     order: row.order ?? Date.now(),
-    attachments: row.attachments ?? [],
+    attachments: [],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -62,22 +80,19 @@ export async function createTask(
   input: CreateTaskInput,
   reporterId: string,
 ): Promise<Task> {
-  const { data, error } = await supabase
-    .from('tasks')
-    .insert({
-      project_id: input.projectId,
-      title: input.title,
-      description: input.description ?? '',
-      status: input.status,
-      priority: input.priority,
-      label: input.label ?? '',
-      assignee_id: input.assigneeId ?? null,
-      reporter_id: reporterId,
-      due_date: input.dueDate ?? null,
-      order: Date.now(),
-    })
-    .select()
-    .single()
+  const payload: TablesInsert<'tasks'> = {
+    project_id: input.projectId,
+    title: input.title,
+    description: input.description ?? '',
+    status: input.status,
+    priority: input.priority,
+    label: input.label ?? '',
+    assignee_id: input.assigneeId ?? null,
+    reporter_id: reporterId,
+    due_date: input.dueDate ?? null,
+    order: Date.now(),
+  }
+  const { data, error } = await supabase.from('tasks').insert(payload).select().single()
   if (error) throw new Error(error.message)
   return rowToTask(data!)
 }
@@ -87,7 +102,7 @@ export async function updateTask(
   taskId: string,
   input: Partial<UpdateTaskInput>,
 ): Promise<void> {
-  const updates: Record<string, any> = {}
+  const updates: TablesUpdate<'tasks'> = {}
   if (input.title !== undefined)       updates.title = input.title
   if (input.description !== undefined) updates.description = input.description
   if (input.status !== undefined) {
@@ -103,14 +118,15 @@ export async function updateTask(
   if (error) throw new Error(error.message)
 }
 
-//* ── Move task (kanban drag) *//
+//* ── Move task (kanban) *//
 export async function moveTask(
   taskId: string,
   newStatus: TaskStatus,
   newOrder: number,
 ): Promise<void> {
-  const updates: Record<string, any> = { status: newStatus, order: newOrder }
+  const updates: TablesUpdate<'tasks'> = { status: newStatus, order: newOrder }
   if (newStatus === 'Done') updates.completed_at = new Date().toISOString()
+
   const { error } = await supabase.from('tasks').update(updates).eq('id', taskId)
   if (error) throw new Error(error.message)
 }
@@ -124,8 +140,8 @@ export async function deleteTask(taskId: string): Promise<void> {
 //* ── Delete all tasks of a project (cascade is handled by Supabase FK) *//
 export async function deleteProjectTasks(projectId: string): Promise<void> {
   const { error } = await supabase.from('tasks')
-  .delete()
-  .eq('project_id', projectId)
-  
+    .delete()
+    .eq('project_id', projectId)
+
   if (error) throw new Error(error.message)
 }

@@ -1,8 +1,19 @@
 import { supabase } from './client'
 import type { Comment, CreateCommentInput } from '@/types'
+import type { TablesInsert, TablesUpdate } from './database.types'
+
 
 //* ── Map DB row → Comment *//
-function rowToComment(row: any): Comment {
+function rowToComment(row: {
+  id: string
+  task_id: string
+  project_id: string
+  author_id: string
+  content: string
+  edited: boolean
+  created_at: string
+  updated_at: string
+}): Comment {
   return {
     id: row.id,
     taskId: row.task_id,
@@ -15,21 +26,19 @@ function rowToComment(row: any): Comment {
   }
 }
 
+
 //* ── Create — returns immediately with inserted row *//
 export async function createComment(
   input: CreateCommentInput,
   authorId: string,
 ): Promise<Comment> {
-  const { data, error } = await supabase
-    .from('comments')
-    .insert({
-      task_id: input.taskId,
-      project_id: input.projectId,
-      author_id: authorId,
-      content: input.content.trim(),
-    })
-    .select()
-    .single()
+  const payload: TablesInsert<'comments'> = {
+    task_id: input.taskId,
+    project_id: input.projectId,
+    author_id: authorId,
+    content: input.content.trim(),
+  }
+  const { data, error } = await supabase.from('comments').insert(payload).select().single()
   if (error) throw new Error(error.message)
   return rowToComment(data!)
 }
@@ -47,10 +56,8 @@ export async function getTaskComments(taskId: string): Promise<Comment[]> {
 
 //* ── Update comment *//
 export async function updateComment(commentId: string, content: string): Promise<void> {
-  const { error } = await supabase
-    .from('comments')
-    .update({ content: content.trim(), edited: true })
-    .eq('id', commentId)
+  const updates: TablesUpdate<'comments'> = { content: content.trim(), edited: true }
+  const { error } = await supabase.from('comments').update(updates).eq('id', commentId)
   if (error) throw new Error(error.message)
 }
 

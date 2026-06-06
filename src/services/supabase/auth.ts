@@ -1,5 +1,7 @@
 import { supabase } from './client'
 import type { User, LoginInput, RegisterInput } from '@/types'
+import type { TablesInsert, TablesUpdate } from './database.types'
+
 
 //* ── Map DB row → app User *// 
 function rowToUser(row: any): User {
@@ -16,16 +18,13 @@ function rowToUser(row: any): User {
 
 //* ── Upsert profile (safe to call multiple times) *//
 export async function upsertProfile(id: string, email: string, displayName: string) {
-  const { error } = await supabase.from('profiles').upsert(
-    {
-      id,
-      email: email.toLowerCase().trim(),
-      display_name: displayName,
-      photo_url: null,
-    },
-    { onConflict: 'id' },
-  )
-  // Non-fatal: profile may already exist via trigger
+  const payload: TablesInsert<'profiles'> = {
+    id,
+    email: email.toLowerCase().trim(),
+    display_name: displayName.trim(),
+    photo_url: null,
+  }
+  const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' })
   if (error) console.warn('upsertProfile warning:', error.message)
 }
 
@@ -108,7 +107,7 @@ export async function updateUserProfile(
   uid: string,
   data: { displayName?: string; email?: string },
 ) {
-  const updates: Record<string, string> = {}
+  const updates: TablesUpdate<'profiles'> = {}
   if (data.displayName) updates.display_name = data.displayName
   if (data.email) updates.email = data.email.toLowerCase().trim()
 
@@ -120,6 +119,7 @@ export async function updateUserProfile(
     if (authErr) throw new Error(authErr.message)
   }
 }
+
 
 //* ── Change password *//
 export async function changePassword(_currentPassword: string, newPassword: string) {
@@ -162,7 +162,8 @@ export function onAuthChange(
   callback: (user: { id: string; email: string } | null) => void,
 ) {
   const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-    callback(session?.user ?? null)
+    const user = session?.user ?? null
+    callback(user ? { id: user.id, email: user.email ?? '' } : null)
   })
   return () => data.subscription.unsubscribe()
 }

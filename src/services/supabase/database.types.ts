@@ -1,7 +1,4 @@
-// Auto-generated type skeleton — run `supabase gen types typescript` to regenerate
-// from your project after applying the SQL migration.
-
-export type Json = string | number | boolean | null | { [key: string]: Json } | Json[]
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export interface Database {
   public: {
@@ -29,6 +26,7 @@ export interface Database {
           photo_url?: string | null
           updated_at?: string
         }
+        Relationships: []
       }
       projects: {
         Row: {
@@ -67,6 +65,7 @@ export interface Database {
           archived?: boolean
           updated_at?: string
         }
+        Relationships: []
       }
       tasks: {
         Row: {
@@ -115,6 +114,7 @@ export interface Database {
           order?: number
           updated_at?: string
         }
+        Relationships: []
       }
       comments: {
         Row: {
@@ -142,6 +142,7 @@ export interface Database {
           edited?: boolean
           updated_at?: string
         }
+        Relationships: []
       }
       notifications: {
         Row: {
@@ -171,10 +172,30 @@ export interface Database {
         Update: {
           read?: boolean
         }
+        Relationships: []
       }
     }
-    Views: Record<string, never>
-    Functions: Record<string, never>
-    Enums: Record<string, never>
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
 }
+
+//* ── Convenience type aliases *//
+export type Tables<T extends keyof Database['public']['Tables']> =
+  Database['public']['Tables'][T]['Row']
+
+export type TablesInsert<T extends keyof Database['public']['Tables']> =
+  Database['public']['Tables'][T]['Insert']
+
+export type TablesUpdate<T extends keyof Database['public']['Tables']> =
+  Database['public']['Tables'][T]['Update']
