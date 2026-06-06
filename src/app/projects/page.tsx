@@ -19,12 +19,16 @@ import { AddMemberModal } from '@/features/projects/components/AddMemberModal'
 import type { Project } from '@/types'
 import type { ProjectFormData } from '@/features/projects/schemas'
 import { EditProjectModal } from '@/features/projects/components/EditProjectModal'
+import { useAuthStore } from '@/stores/auth.store'
+import { usePermissions } from '@/hooks/usePermissions'
 
 export default function ProjectsPage() {
   const {
     projects, loading, delete: deleteProject,
     update: updateProject } = useProjects()
   const { tasks } = useProjectsStore()
+  const { sessionUser } = useAuthStore()
+  const { canCreateProject } = usePermissions()
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [memberModalProject, setMemberModalProject] = useState<Project | null>(null)
   const [editModalProject, setEditModalProject] = useState<Project | null>(null)
@@ -69,12 +73,14 @@ export default function ProjectsPage() {
           title="Projetos"
           breadcrumbs={[{ label: 'Projetos' }]}
           actions={
-            <Link
-              href={ROUTES.newProject}
-              className="flex h-7 items-center gap-1.5 rounded-md border border-border/60 bg-secondary/50 px-2.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
-            >
-              <Plus size={11} /> Novo projeto
-            </Link>
+            canCreateProject ? (
+              <Link
+                href={ROUTES.newProject}
+                className="flex h-7 items-center gap-1.5 rounded-md border border-border/60 bg-secondary/50 px-2.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+              >
+                <Plus size={11} /> Novo projeto
+              </Link>
+            ) : undefined
           }
         />
 
@@ -98,12 +104,14 @@ export default function ProjectsPage() {
               title="Ainda sem projetos"
               description="Crie o seu primeiro projeto para começar a gerir tarefas e colaborar com a sua equipa."
               action={
-                <Link
-                  href={ROUTES.newProject}
-                  className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-all"
-                >
-                  <Plus size={12} /> Criar projeto
-                </Link>
+                canCreateProject ? (
+                  <Link
+                    href={ROUTES.newProject}
+                    className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-all"
+                  >
+                    <Plus size={12} /> Criar projeto
+                  </Link>
+                ) : undefined
               }
             />
           ) : (
@@ -114,6 +122,9 @@ export default function ProjectsPage() {
                 const pct = calcProgress(ptasks.length, done)
                 const isDeleting = deletingId === project.id
 
+                // Per-project permissions
+                const isOwner = project.ownerId === sessionUser?.id
+
                 return (
                   <motion.div
                     key={project.id}
@@ -122,7 +133,6 @@ export default function ProjectsPage() {
                     transition={{ delay: i * 0.06 }}
                     className="group relative rounded-xl border border-border bg-card overflow-hidden hover:border-border/80 transition-all hover:-translate-y-0.5"
                   >
-                    {/* Color bars */}
                     <div className="h-[3px] w-full" style={{ background: project.color }} />
 
                     <div className="p-4">
@@ -135,9 +145,21 @@ export default function ProjectsPage() {
                             {project.name[0]}
                           </div>
                           <div className="min-w-0">
-                            <h3 className="text-sm font-medium text-foreground line-clamp-1">
-                              {project.name}
-                            </h3>
+                            <div className="flex items-center gap-1.5">
+                              <h3 className="text-sm font-medium text-foreground line-clamp-1">
+                                {project.name}
+                              </h3>
+                              {/* Role badge */}
+                              {isOwner ? (
+                                <span className="flex-shrink-0 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-400">
+                                  Owner
+                                </span>
+                              ) : (
+                                <span className="flex-shrink-0 rounded-full bg-blue-500/10 px-1.5 py-0.5 text-[9px] font-medium text-blue-400">
+                                  Membro
+                                </span>
+                              )}
+                            </div>
                             {project.dueDate && (
                               <p className="text-[10px] text-muted-foreground">
                                 Prazo: {formatDate(project.dueDate)}
@@ -147,39 +169,40 @@ export default function ProjectsPage() {
                         </div>
 
                         {/* Actions */}
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2">
-                          <button
-                            onClick={(e) => { e.preventDefault(); setEditModalProject(project) }}
-                            title="Editar projeto"
-                            className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
-                          >
-                            <Pencil size={11} />
-                          </button>
-                          <button
-                            onClick={(e) => { e.preventDefault(); setMemberModalProject(project) }}
-                            title="Gerir membros"
-                            className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
-                          >
-                            <Users size={12} />
-                          </button>
-                          <button
-                            onClick={(e) => { e.preventDefault(); handleDelete(project) }}
-                            disabled={isDeleting}
-                            title="Eliminar projeto"
-                            className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all disabled:opacity-60"
-                          >
-                            {isDeleting
-                              ? <Loader2 size={11} className="animate-spin" />
-                              : <Trash2 size={12} />}
-                          </button>
-                        </div>
+                        {isOwner && (
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2">
+                            <button
+                              onClick={(e) => { e.preventDefault(); setEditModalProject(project) }}
+                              title="Editar projeto"
+                              className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+                            >
+                              <Pencil size={11} />
+                            </button>
+                            <button
+                              onClick={(e) => { e.preventDefault(); setMemberModalProject(project) }}
+                              title="Gerir membros"
+                              className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+                            >
+                              <Users size={12} />
+                            </button>
+                            <button
+                              onClick={(e) => { e.preventDefault(); handleDelete(project) }}
+                              disabled={isDeleting}
+                              title="Eliminar projeto"
+                              className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all disabled:opacity-60"
+                            >
+                              {isDeleting
+                                ? <Loader2 size={11} className="animate-spin" />
+                                : <Trash2 size={12} />}
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       <p className="mb-4 text-xs text-muted-foreground line-clamp-2 leading-relaxed min-h-[32px]">
                         {project.description || 'Sem descrição'}
                       </p>
 
-                      {/* Progress */}
                       <div className="mb-3">
                         <div className="mb-1.5 flex items-center justify-between">
                           <span className="text-[10px] text-muted-foreground">Progresso</span>
@@ -209,24 +232,25 @@ export default function ProjectsPage() {
                 )
               })}
 
-              {/* Card novo projeto */}
-              <Link
-                href={ROUTES.newProject}
-                className="flex min-h-[180px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-transparent hover:border-border/80 hover:bg-secondary/30 transition-all group"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-dashed border-border group-hover:border-primary/40 group-hover:bg-primary/5 transition-all mb-2">
-                  <Plus size={18} className="text-muted-foreground group-hover:text-primary transition-colors" />
-                </div>
-                <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-                  Novo Projeto
-                </span>
-              </Link>
+              {/* Card novo projeto — só para utilizadores autenticados */}
+              {canCreateProject && (
+                <Link
+                  href={ROUTES.newProject}
+                  className="flex min-h-[180px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-transparent hover:border-border/80 hover:bg-secondary/30 transition-all group"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-dashed border-border group-hover:border-primary/40 group-hover:bg-primary/5 transition-all mb-2">
+                    <Plus size={18} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                  </div>
+                  <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+                    Novo Projeto
+                  </span>
+                </Link>
+              )}
             </div>
           )}
         </div>
       </div>
 
-      {/* Modal — Members */}
       {memberModalProject && (
         <AddMemberModal
           open={!!memberModalProject}
@@ -236,7 +260,6 @@ export default function ProjectsPage() {
         />
       )}
 
-      {/* Modal — Edit prject */}
       <EditProjectModal
         open={!!editModalProject}
         onClose={() => setEditModalProject(null)}

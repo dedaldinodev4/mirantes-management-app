@@ -195,3 +195,6 @@ export type ErrorKind =
   | 'WEAK_PASSWORD'
   | 'NETWORK'
   | 'GENERIC'
+
+//* ── Role Members *//
+  export type RolesMembers = 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER'
