@@ -1,36 +1,41 @@
 'use client'
 
-import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Folder, CheckCircle2, Clock, AlertCircle, TrendingUp,
+  Folder, CheckCircle2, Clock, AlertCircle,
   Plus, ArrowRight, Activity,
 } from 'lucide-react'
 import Link from 'next/link'
 import { TopBar } from '@/components/layout/TopBar'
-import { Avatar, AvatarGroup } from '@/components/shared/Avatar'
-import { Skeleton, DashboardSkeleton } from '@/components/shared/Skeleton'
+import { DashboardSkeleton } from '@/components/shared/Skeleton'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { useDashboard } from '@/features/dashboard/hooks/useDashboard'
-import { ROUTES, COLUMN_COLORS } from '@/constants'
-import { cn, formatRelative, calcProgress, isOverdue, toDate } from '@/utils'
+import { ROUTES } from '@/constants'
+import { cn, calcProgress, formatDate, isOverdue } from '@/utils'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 10 },
   show: (i: number) => ({
-    opacity: 1,
-    y: 0,
+    opacity: 1, y: 0,
     transition: { delay: i * 0.06, duration: 0.3, ease: [0.4, 0, 0.2, 1] },
   }),
 }
 
-export default function DashboardPage() {
-  const { projects, tasks, activities, members, loading } = useDashboard()
+const ACTIVITY_COLORS = {
+  completed:    'bg-emerald-500/10',
+  overdue:      'bg-red-500/10',
+  review:       'bg-amber-500/10',
+  created:      'bg-indigo-500/10',
+  notification: 'bg-blue-500/10',
+}
 
-  const totalProjects = projects.length
-  const doneTasks = tasks.filter((t) => t.status === 'Done').length
+export default function DashboardPage() {
+  const { projects, tasks, activities, loading } = useDashboard()
+
+  const totalProjects   = projects.length
+  const doneTasks       = tasks.filter((t) => t.status === 'Done').length
   const inProgressTasks = tasks.filter((t) => t.status === 'In Progress').length
-  const overdueTasks = tasks.filter((t) => isOverdue(t.dueDate)).length
+  const overdueTasks    = tasks.filter((t) => isOverdue(t.dueDate) && t.status !== 'Done').length
 
   const metrics = [
     {
@@ -40,27 +45,27 @@ export default function DashboardPage() {
       color: 'text-indigo-400',
       bg: 'bg-indigo-500/10',
       accent: '#6366f1',
-      delta: '+1 este mês',
-      deltaUp: true,
+      delta: 'total activos',
+      deltaUp: null as boolean | null,
     },
     {
-      label: 'Completo',
+      label: 'Concluídas',
       value: doneTasks,
       icon: CheckCircle2,
       color: 'text-emerald-400',
       bg: 'bg-emerald-500/10',
       accent: '#22c55e',
-      delta: '+3 esta semana',
-      deltaUp: true,
+      delta: 'tarefas concluídas',
+      deltaUp: null,
     },
     {
-      label: 'Em Progresso',
+      label: 'Em progresso',
       value: inProgressTasks,
       icon: Clock,
       color: 'text-amber-400',
       bg: 'bg-amber-500/10',
       accent: '#f59e0b',
-      delta: 'Todos projetos',
+      delta: 'em todos os projetos',
       deltaUp: null,
     },
     {
@@ -70,19 +75,21 @@ export default function DashboardPage() {
       color: overdueTasks > 0 ? 'text-red-400' : 'text-muted-foreground',
       bg: overdueTasks > 0 ? 'bg-red-500/10' : 'bg-secondary',
       accent: overdueTasks > 0 ? '#ef4444' : '#666',
-      delta: overdueTasks > 0 ? 'Precisa de atenção' : 'Todos no caminho certo',
+      delta: overdueTasks > 0 ? 'Requer atenção' : 'Tudo em dia',
       deltaUp: overdueTasks > 0 ? false : null,
     },
   ]
 
-  if (loading) return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-      <TopBar title="Dashboard" breadcrumbs={[{ label: 'Dashboard' }]} />
-      <div className="flex-1 overflow-auto p-6">
-        <DashboardSkeleton />
+  if (loading) {
+    return (
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <TopBar title="Dashboard" breadcrumbs={[{ label: 'Dashboard' }]} />
+        <div className="flex-1 overflow-auto p-6">
+          <DashboardSkeleton />
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -94,8 +101,7 @@ export default function DashboardPage() {
             href={ROUTES.newProject}
             className="flex h-7 items-center gap-1.5 rounded-md border border-border/60 bg-secondary/50 px-2.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
           >
-            <Plus size={11} />
-            Novo projeto
+            <Plus size={11} /> Novo projeto
           </Link>
         }
       />
@@ -112,10 +118,7 @@ export default function DashboardPage() {
               variants={fadeUp}
               className="relative rounded-xl border border-border bg-card p-4 overflow-hidden hover:border-border/80 transition-colors"
             >
-              <div
-                className="absolute top-0 left-0 right-0 h-[2px]"
-                style={{ background: metric.accent }}
-              />
+              <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: metric.accent }} />
               <div className="flex items-center justify-between mb-3">
                 <span className="text-[11px] font-medium tracking-wide uppercase text-muted-foreground">
                   {metric.label}
@@ -124,25 +127,25 @@ export default function DashboardPage() {
                   <metric.icon size={14} className={metric.color} />
                 </div>
               </div>
-              <div className={cn('text-2xl font-semibold tracking-tight', metric.color === 'text-red-400' && overdueTasks > 0 ? 'text-red-400' : 'text-foreground')}>
+              <div className={cn(
+                'text-2xl font-semibold tracking-tight',
+                overdueTasks > 0 && metric.label === 'Em atraso' ? 'text-red-400' : 'text-foreground',
+              )}>
                 {metric.value}
               </div>
-              <div className={cn('mt-1.5 text-[11px]',
-                metric.deltaUp === true ? 'text-emerald-500' :
-                metric.deltaUp === false ? 'text-red-400' :
-                'text-muted-foreground'
+              <div className={cn(
+                'mt-1.5 text-[11px]',
+                metric.deltaUp === false ? 'text-red-400' : 'text-muted-foreground',
               )}>
-                {metric.deltaUp === true && '↑ '}
-                {metric.deltaUp === false && '↓ '}
                 {metric.delta}
               </div>
             </motion.div>
           ))}
         </div>
 
-        {/* ── Two column ── */}
+        {/* ── Two columns ── */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
-          {/* Projects */}
+          {/* Recents projects */}
           <motion.div custom={4} initial="hidden" animate="show" variants={fadeUp}>
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-medium text-foreground">Projetos Recentes</h2>
@@ -157,8 +160,8 @@ export default function DashboardPage() {
             {projects.length === 0 ? (
               <EmptyState
                 icon={<Folder size={20} />}
-                title="Nenhum projeto ainda"
-                description="Crie seu primeiro projeto e organize suas tarefas."
+                title="Ainda sem projetos"
+                description="Crie o seu primeiro projeto para começar."
                 action={
                   <Link
                     href={ROUTES.newProject}
@@ -170,15 +173,16 @@ export default function DashboardPage() {
               />
             ) : (
               <div className="space-y-3">
-                {projects.slice(0, 4).map((project) => {
+                {projects.slice(0, 5).map((project) => {
                   const ptasks = tasks.filter((t) => t.projectId === project.id)
-                  const done = ptasks.filter((t) => t.status === 'Done').length
-                  const pct = calcProgress(ptasks.length, done)
+                  const done   = ptasks.filter((t) => t.status === 'Done').length
+                  const pct    = calcProgress(ptasks.length, done)
+                  const hasOverdue = ptasks.some((t) => isOverdue(t.dueDate) && t.status !== 'Done')
 
                   return (
                     <Link
                       key={project.id}
-                      href={`/projects/${project.id}/kanban`}
+                      href={ROUTES.kanban(project.id) as any}
                       className="group flex items-center gap-4 rounded-xl border border-border bg-card px-4 py-3.5 hover:border-border/80 hover:bg-card/80 transition-all"
                     >
                       <div
@@ -189,9 +193,16 @@ export default function DashboardPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-sm font-medium text-foreground truncate">
-                            {project.name}
-                          </span>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-sm font-medium text-foreground truncate">
+                              {project.name}
+                            </span>
+                            {hasOverdue && (
+                              <span className="flex-shrink-0 rounded-full bg-red-500/10 px-1.5 py-0.5 text-[9px] font-medium text-red-400">
+                                Atraso
+                              </span>
+                            )}
+                          </div>
                           <span className="text-xs text-muted-foreground ml-2 flex-shrink-0">
                             {pct}%
                           </span>
@@ -202,13 +213,21 @@ export default function DashboardPage() {
                             style={{ width: `${pct}%`, background: project.color }}
                           />
                         </div>
+                        <div className="mt-1.5 flex items-center gap-3">
+                          <span className="text-[10px] text-muted-foreground">
+                            {ptasks.length} tarefa{ptasks.length !== 1 ? 's' : ''} · {done} concluída{done !== 1 ? 's' : ''}
+                          </span>
+                          {project.dueDate && (
+                            <span className="text-[10px] text-muted-foreground">
+                              Prazo: {formatDate(project.dueDate)}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex-shrink-0">
-                        <ArrowRight
-                          size={14}
-                          className="text-muted-foreground/30 group-hover:text-muted-foreground transition-colors"
-                        />
-                      </div>
+                      <ArrowRight
+                        size={14}
+                        className="text-muted-foreground/30 group-hover:text-muted-foreground transition-colors flex-shrink-0"
+                      />
                     </Link>
                   )
                 })}
@@ -216,61 +235,85 @@ export default function DashboardPage() {
             )}
           </motion.div>
 
-          {/* Activity */}
+          {/* Recents activities */}
           <motion.div custom={5} initial="hidden" animate="show" variants={fadeUp}>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-medium text-foreground">Atividades Recentes</h2>
+              <h2 className="text-sm font-medium text-foreground">Atividade Recente</h2>
               <Activity size={13} className="text-muted-foreground" />
             </div>
 
-            <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
               {activities.length === 0 ? (
-                <div className="p-6 text-center text-xs text-muted-foreground">
-                  Sem atividades recentes
+                <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                  <Activity size={20} className="text-muted-foreground/30 mb-2" />
+                  <p className="text-xs text-muted-foreground">
+                    Sem atividade recente.<br />Crie tarefas para ver o progresso aqui.
+                  </p>
                 </div>
               ) : (
-                activities.slice(0, 6).map((activity, i) => (
-                  <div key={i} className="flex items-start gap-3 px-4 py-3">
-                    <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-secondary text-sm">
-                      {activity.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className="text-xs text-muted-foreground leading-relaxed"
-                        dangerouslySetInnerHTML={{ __html: activity.text }}
-                      />
-                      <p className="mt-0.5 text-[10px] text-muted-foreground/60">
-                        {activity.time}
-                      </p>
-                    </div>
-                  </div>
-                ))
+                <div className="divide-y divide-border">
+                  {activities.map((activity, i) => (
+                    <motion.div
+                      key={activity.id}
+                      initial={{ opacity: 0, x: 6 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.04 }}
+                      className="flex items-start gap-3 px-4 py-3"
+                    >
+                      <div className={cn(
+                        'flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg text-sm',
+                        ACTIVITY_COLORS[activity.type],
+                      )}>
+                        {activity.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className="text-xs text-muted-foreground leading-relaxed"
+                          dangerouslySetInnerHTML={{ __html: activity.text }}
+                        />
+                        <p className="mt-0.5 text-[10px] text-muted-foreground/60">
+                          {activity.time}
+                        </p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
               )}
             </div>
 
-            {/* Team */}
-            {members.length > 0 && (
-              <>
-                <div className="mb-3 mt-5 flex items-center justify-between">
-                  <h2 className="text-sm font-medium text-foreground">Membros</h2>
+            {/* Due tasks */}
+            {overdueTasks > 0 && (
+              <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/5 p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertCircle size={13} className="text-red-400 flex-shrink-0" />
+                  <span className="text-xs font-medium text-red-400">
+                    {overdueTasks} tarefa{overdueTasks !== 1 ? 's' : ''} em atraso
+                  </span>
                 </div>
-                <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
-                  {members.map((member) => (
-                    <div key={member.uid} className="flex items-center gap-3 px-4 py-2.5">
-                      <Avatar name={member.displayName} photoURL={member.photoURL} size="sm" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-foreground truncate">
-                          {member.displayName}
-                        </p>
-                      </div>
-                      <div className="flex h-4 items-center gap-1 rounded-full bg-emerald-500/10 px-2 text-[10px] font-medium text-emerald-500">
-                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                        Online
-                      </div>
-                    </div>
-                  ))}
+                <div className="space-y-1">
+                  {tasks
+                    .filter((t) => isOverdue(t.dueDate) && t.status !== 'Done')
+                    .slice(0, 3)
+                    .map((task) => {
+                      const project = projects.find((p) => p.id === task.projectId)
+                      return (
+                        <Link
+                          key={task.id}
+                          href={project ? ROUTES.kanban(project.id) as any : ROUTES.projects}
+                          className="flex items-center gap-2 rounded-lg p-1.5 hover:bg-red-500/10 transition-colors"
+                        >
+                          <div className="h-1.5 w-1.5 rounded-full bg-red-400 flex-shrink-0" />
+                          <span className="text-[11px] text-red-400/80 truncate">{task.title}</span>
+                          {project && (
+                            <span className="text-[10px] text-red-400/50 flex-shrink-0 ml-auto">
+                              {project.name}
+                            </span>
+                          )}
+                        </Link>
+                      )
+                    })}
                 </div>
-              </>
+              </div>
             )}
           </motion.div>
         </div>

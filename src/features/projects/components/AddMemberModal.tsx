@@ -158,19 +158,19 @@ export function AddMemberModal({ open, onClose, project, onMembersChanged }: Add
                 {/* Add by email */}
                 {isOwner && (
                   <div>
-                    <label className="mb-2 block text-xs font-medium text-muted-foreground">Invite by email</label>
+                    <label className="mb-2 block text-xs font-medium text-muted-foreground">Convidar pelo email</label>
                     <div className="flex gap-2">
                       <div className="relative flex-1">
                         <AtSign size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                         <input value={email} onChange={(e) => setEmail(e.target.value)}
                           onKeyDown={(e) => { if (e.key === 'Enter') handleAdd() }}
-                          placeholder="colleague@company.com" type="email" autoComplete="off" disabled={adding}
+                          placeholder="exemplo@empresa.com" type="email" autoComplete="off" disabled={adding}
                           className="w-full rounded-lg border border-border/60 bg-secondary/50 pl-8 pr-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 outline-none transition-all focus:border-primary/60 focus:ring-2 focus:ring-primary/20 disabled:opacity-60" />
                       </div>
                       <button onClick={handleAdd} disabled={adding || !email.trim()}
                         className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
                         {adding ? <Loader2 size={12} className="animate-spin" /> : <UserPlus size={12} />}
-                        {adding ? 'Adicionando...' : 'Convite'}
+                        {adding ? 'Adicionando...' : 'Convidar'}
                       </button>
                     </div>
                     <p className="mt-1.5 text-[11px] text-muted-foreground/60">
@@ -187,7 +187,7 @@ export function AddMemberModal({ open, onClose, project, onMembersChanged }: Add
 
                   {loadingMembers ? (
                     <div className="flex items-center gap-2 py-4 text-xs text-muted-foreground">
-                      <Loader2 size={13} className="animate-spin" /> Loading members…
+                      <Loader2 size={13} className="animate-spin" /> Carregando membros…
                     </div>
                   ) : members.length === 0 ? (
                     <p className="py-2 text-xs text-muted-foreground/60">No members loaded.</p>
@@ -210,7 +210,7 @@ export function AddMemberModal({ open, onClose, project, onMembersChanged }: Add
                                   {member.displayName}
                                 </p>
                                 {isCurrentUser && (
-                                  <span className="text-[10px] text-muted-foreground">(you)</span>
+                                  <span className="text-[10px] text-muted-foreground">(você)</span>
                                 )}
                                 {isProjectOwner && (
                                   <Crown size={10} className="text-amber-400 flex-shrink-0" />
@@ -221,7 +221,7 @@ export function AddMemberModal({ open, onClose, project, onMembersChanged }: Add
 
                             {isProjectOwner ? (
                               <span className="flex-shrink-0 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-400">
-                                Owner
+                                Admin
                               </span>
                             ) : isOwner && !isCurrentUser ? (
                               <button

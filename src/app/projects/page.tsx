@@ -152,7 +152,7 @@ export default function ProjectsPage() {
                               {/* Role badge */}
                               {isOwner ? (
                                 <span className="flex-shrink-0 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-400">
-                                  Owner
+                                  Admin
                                 </span>
                               ) : (
                                 <span className="flex-shrink-0 rounded-full bg-blue-500/10 px-1.5 py-0.5 text-[9px] font-medium text-blue-400">
@@ -162,7 +162,7 @@ export default function ProjectsPage() {
                             </div>
                             {project.dueDate && (
                               <p className="text-[10px] text-muted-foreground">
-                                Prazo: {formatDate(project.dueDate)}
+                                Data limite: {formatDate(project.dueDate)}
                               </p>
                             )}
                           </div>
