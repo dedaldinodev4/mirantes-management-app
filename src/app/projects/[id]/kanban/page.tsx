@@ -113,7 +113,7 @@ export default function KanbanPage() {
           breadcrumbs={[
             { label: 'Projetos', href: ROUTES.projects },
             { label: project?.name ?? '…' },
-            { label: 'Board' },
+            { label: 'Quadro' },
           ]}
           actions={
             <div className="flex items-center gap-2">

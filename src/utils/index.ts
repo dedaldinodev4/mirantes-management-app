@@ -56,6 +56,10 @@ export function getDueDateLabel(value: ISODate | string | null | undefined): { l
   return { label: formatDate(value, 'MMM d'), urgent: false }
 }
 
+export function todayDate (): string {
+  return new Date().toISOString().split('T')[0];
+}
+
 
 //* ── String utilities *//
 export function getInitials(name: string): string {

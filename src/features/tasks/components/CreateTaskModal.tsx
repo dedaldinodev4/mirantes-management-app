@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 
 import { taskSchema, type TaskFormData } from '@/features/tasks/schemas'
 import { TASK_LABELS, KANBAN_COLUMNS } from '@/constants'
-import { cn } from '@/utils'
+import { cn, todayDate } from '@/utils'
 import type { CreateTaskInput, User } from '@/types'
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll'
 import { useEscapeKey } from '../hooks/useEscapeKey'
@@ -209,6 +209,7 @@ export function CreateTaskModal({ open, onClose, onCreate, projectId }: CreateTa
                     {...register('dueDate')}
                     type="date"
                     disabled={isSubmitting}
+                    min={todayDate()}
                     className="w-full rounded-lg border border-border/60 bg-secondary/50 px-3 py-2 text-sm text-foreground outline-none transition-all focus:border-primary/60 disabled:opacity-60"
                   />
                 </div>

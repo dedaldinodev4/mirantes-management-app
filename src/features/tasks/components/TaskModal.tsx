@@ -13,7 +13,7 @@ import {
 import { PriorityBadge } from '@/components/shared/PriorityBadge'
 import { useProjectsStore } from '@/stores/projects.store'
 import { PRIORITY_CONFIG, COLUMN_COLORS, LABEL_COLORS, TASK_LABELS } from '@/constants'
-import { cn, formatDate, isOverdue, getDueDateLabel, formatRelative } from '@/utils'
+import { cn, formatDate, isOverdue, getDueDateLabel, formatRelative, todayDate } from '@/utils'
 
 import { toast } from 'sonner'
 
@@ -376,7 +376,7 @@ export function TaskModal({
                         </div>
                         <div>
                           <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-widest text-muted-foreground/60">Data limite</label>
-                          <input {...register('dueDate')} type="date" className={inputCls()} />
+                          <input {...register('dueDate')} min={todayDate()} type="date" className={inputCls()} />
                         </div>
                       </div>
                     </>

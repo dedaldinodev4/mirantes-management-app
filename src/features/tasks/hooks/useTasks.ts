@@ -11,12 +11,14 @@ import {
   deleteTask,
   moveTask,
 } from '@/services/supabase/tasks'
+import { notifyProjectMembers } from '@/services/supabase/notifications'
 import type { CreateTaskInput, UpdateTaskInput, TaskStatus } from '@/types'
 
 export function useTasks(projectId: string) {
-  const { sessionUser } = useAuthStore()
+  const { sessionUser, profile } = useAuthStore()
   const {
     tasks,
+    projects,
     setTasks,
     columns,
     setCurrentProjectId,
@@ -27,6 +29,7 @@ export function useTasks(projectId: string) {
 
   const projectTasks = tasks.filter((t) => t.projectId === projectId)
   const loadingRef = useRef(false)
+  const project = projects.find((p) => p.id === projectId)
 
   //* Register the active project so buildColumns stays scoped *//
   useEffect(() => {
@@ -60,17 +63,84 @@ export function useTasks(projectId: string) {
       const current = tasks.filter((t) => t.projectId === projectId)
       setTasks([...others, ...current, task])
       toast.success('Tarefa criada', { description: input.title })
+
+      // Notification
+      if (project) {
+        const actorName = profile?.displayName ?? 'Alguém'
+        await notifyProjectMembers({
+          memberIds: project.memberIds,
+          actorId: sessionUser.id,
+          type: 'task_assigned',
+          title: 'Nova tarefa criada',
+          body: `${actorName} criou "${input.title}" em ${project.name}`,
+          taskId: task.id,
+          projectId,
+        })
+      }
+
+      // Notify the person responsible (if different from the breeder)
+      if (input.assigneeId && input.assigneeId !== sessionUser.id && project) {
+        const actorName = profile?.displayName ?? 'Alguém'
+        await notifyProjectMembers({
+          memberIds: [input.assigneeId],
+          actorId: sessionUser.id,
+          type: 'task_assigned',
+          title: 'Tarefa atribuída a si',
+          body: `${actorName} atribuiu-lhe "${input.title}"`,
+          taskId: task.id,
+          projectId,
+        })
+      }
+
       return task.id
     } catch (err: any) {
       toast.error('Falha ao criar tarefa', { description: err?.message })
     }
   }
 
-  //* ── Update — optimistic *//
-  const handleUpdate = async (taskId: string, input: Partial<UpdateTaskInput>): Promise<void> => {
+  //* ── Update *//
+  const handleUpdate = async (
+    taskId: string,
+    input: Partial<UpdateTaskInput>,
+  ): Promise<void> => {
     storeUpdate(taskId, input)
     try {
       await updateTask(taskId, input)
+
+      // Notify members when completing a task
+      if (input.status === 'Done' && project && sessionUser) {
+        const task = tasks.find((t) => t.id === taskId)
+        const actorName = profile?.displayName ?? 'Alguém'
+        await notifyProjectMembers({
+          memberIds: project.memberIds,
+          actorId: sessionUser.id,
+          type: 'task_completed',
+          title: 'Tarefa concluída',
+          body: `${actorName} concluiu "${task?.title ?? 'uma tarefa'}" em ${project.name}`,
+          taskId,
+          projectId,
+        })
+      }
+
+      // Notify new manager when assigning
+      if (
+        input.assigneeId &&
+        input.assigneeId !== sessionUser?.id &&
+        project &&
+        sessionUser
+      ) {
+        const task = tasks.find((t) => t.id === taskId)
+        const actorName = profile?.displayName ?? 'Alguém'
+        await notifyProjectMembers({
+          memberIds: [input.assigneeId],
+          actorId: sessionUser.id,
+          type: 'task_assigned',
+          title: 'Tarefa atribuída a si',
+          body: `${actorName} atribuiu-lhe "${task?.title ?? 'uma tarefa'}"`,
+          taskId,
+          projectId,
+        })
+      }
     } catch (err: any) {
       toast.error('Falha ao atualizar tarefa', { description: err?.message })
       await load()
@@ -90,10 +160,34 @@ export function useTasks(projectId: string) {
   }
 
   //* ── Move — optimistic *//
-  const handleMove = async (taskId: string, newStatus: TaskStatus, newOrder: number): Promise<void> => {
+  const handleMove = async (
+    taskId: string,
+    newStatus: TaskStatus,
+    newOrder: number,
+  ): Promise<void> => {
     moveTaskLocally(taskId, newStatus, newOrder)
     try {
       await moveTask(taskId, newStatus, newOrder)
+
+      // Notify members when moving to relevant state
+      if (
+        (newStatus === 'Review' || newStatus === 'Done') &&
+        project &&
+        sessionUser
+      ) {
+        const task = tasks.find((t) => t.id === taskId)
+        const actorName = profile?.displayName ?? 'Alguém'
+        const isCompleted = newStatus === 'Done'
+        await notifyProjectMembers({
+          memberIds: project.memberIds,
+          actorId: sessionUser.id,
+          type: isCompleted ? 'task_completed' : 'task_status_changed',
+          title: isCompleted ? 'Tarefa concluída' : 'Tarefa em revisão',
+          body: `${actorName} moveu "${task?.title ?? 'uma tarefa'}" para ${newStatus} em ${project.name}`,
+          taskId,
+          projectId,
+        })
+      }
     } catch (err: any) {
       toast.error('Falha ao mover tarefa', { description: err?.message })
       await load()

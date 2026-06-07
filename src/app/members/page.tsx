@@ -22,8 +22,8 @@ interface MemberWithStats extends AppUser {
 }
 
 const ROLE_CONFIG = {
-  owner: { label: 'Owner', icon: Crown, color: 'text-amber-400', bg: 'bg-amber-500/10' },
-  member: { label: 'Member', icon: User, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+  owner: { label: 'Administrador', icon: Crown, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+  member: { label: 'Membro', icon: User, color: 'text-blue-400', bg: 'bg-blue-500/10' },
 }
 
 export default function MembersPage() {
@@ -73,8 +73,8 @@ export default function MembersPage() {
     <AppShell>
       <div className="flex flex-1 flex-col overflow-hidden">
         <TopBar
-          title="Members"
-          breadcrumbs={[{ label: 'Members' }]}
+          title="Membros"
+          breadcrumbs={[{ label: 'Membros' }]}
           actions={
             <span className="flex h-7 items-center rounded-md border border-border/60 bg-secondary/50 px-2.5 text-xs text-muted-foreground">
               {members.length} membro{members.length !== 1 ? 's' : ''}

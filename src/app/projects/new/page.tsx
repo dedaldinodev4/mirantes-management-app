@@ -11,7 +11,7 @@ import { TopBar } from '@/components/layout/TopBar'
 import { useProjects } from '@/features/projects/hooks/useProjects'
 import { projectSchema, type ProjectFormData } from '@/features/projects/schemas'
 import { PROJECT_COLORS, ROUTES } from '@/constants'
-import { cn } from '@/utils'
+import { cn, todayDate } from '@/utils'
 
 export default function NewProjectPage() {
   const router = useRouter()
@@ -125,6 +125,7 @@ export default function NewProjectPage() {
                     {...register('dueDate')}
                     type="date"
                     disabled={isSubmitting}
+                    min={todayDate()}
                     className="w-full rounded-lg border border-border/60 bg-secondary/50 px-3 py-2 text-sm text-foreground outline-none transition-all focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
                   />
                 </div>

@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { projectSchema, type ProjectFormData } from '@/features/projects/schemas'
 import { PROJECT_COLORS } from '@/constants'
-import { cn } from '@/utils'
+import { cn, todayDate } from '@/utils'
 import type { Project } from '@/types'
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
@@ -170,6 +170,7 @@ export function EditProjectModal({ open, onClose, onSave, project }: EditProject
                     type="date"
                     disabled={isSubmitting}
                     className={inputCls()}
+                    min={todayDate()}
                   />
                 </div>
 

@@ -4,24 +4,19 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  LayoutDashboard, Folder, KanbanSquare, Bell, Users, Settings,
-  ChevronLeft, ChevronRight, Plus, Search, Moon, Sun, LogOut,
+  LayoutDashboard, Folder, Bell, Users, Settings,
+  ChevronLeft, ChevronRight, Plus, Sun, Moon, LogOut,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { useUIStore } from '@/stores/ui.store'
 import { useProjectsStore } from '@/stores/projects.store'
+import { useAuthStore } from '@/stores/auth.store'
+import { useNotifications } from '@/features/notifications/hooks/useNotifications'
+import { useOverdueChecker } from '@/features/notifications/hooks/useOverdueChecker'
 import { ROUTES } from '@/constants'
 import { cn, getInitials } from '@/utils'
 import { CommandPalette } from '@/features/dashboard/components/CommandPalette'
-
-const NAV_ITEMS = [
-  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/projects', icon: Folder, label: 'Projetos' },
-  { href: '/notifications', icon: Bell, label: 'Notificações', badge: 3 },
-  { href: '/members', icon: Users, label: 'Membros' },
-  { href: '/settings', icon: Settings, label: 'Configurações' },
-]
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -29,10 +24,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { profile, signOut } = useAuth()
   const { sidebarCollapsed, toggleSidebar, openCommandPalette } = useUIStore()
   const { projects } = useProjectsStore()
+  const { sessionUser } = useAuthStore()
+  const { unreadCount } = useNotifications()
+
+  //* Check for overdue tasks and create notifications once per session *//
+  useOverdueChecker()
+
+  const NAV_ITEMS = [
+    { href: ROUTES.dashboard, icon: LayoutDashboard, label: 'Dashboard' },
+    { href: ROUTES.projects,  icon: Folder,          label: 'Projetos' },
+    { href: '/notifications', icon: Bell,             label: 'Notificações', badge: unreadCount },
+    { href: '/members',       icon: Users,            label: 'Membros' },
+    { href: ROUTES.settings,  icon: Settings,         label: 'Definições' },
+  ]
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* ── Sidebar ── */}
+      {/* Sidebar */}
       <motion.aside
         animate={{ width: sidebarCollapsed ? 56 : 220 }}
         transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
@@ -72,23 +80,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {/* Search */}
           <button
             onClick={openCommandPalette}
-            className={cn(
-              'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-all mb-2',
-            )}
+            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-all mb-2"
           >
-            <Search size={14} className="flex-shrink-0" />
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+            </svg>
             {!sidebarCollapsed && (
-              <span className="flex-1 text-left whitespace-nowrap overflow-hidden">
-                Buscar...
-              </span>
-            )}
-            {!sidebarCollapsed && (
-              <span className="rounded border border-border bg-secondary px-1 text-[10px] font-mono">⌘K</span>
+              <>
+                <span className="flex-1 text-left whitespace-nowrap overflow-hidden">Pesquisar…</span>
+                <span className="rounded border border-border bg-secondary px-1 text-[10px] font-mono">⌘K</span>
+              </>
             )}
           </button>
 
           {NAV_ITEMS.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(item.href + '/')
+            const active = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href + '/'))
+            const showBadge = item.badge && item.badge > 0
             return (
               <Link
                 key={item.href}
@@ -102,28 +109,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               >
                 <item.icon size={15} className="flex-shrink-0" />
                 {!sidebarCollapsed && (
-                  <span className="flex-1 whitespace-nowrap overflow-hidden">{item.label}</span>
+                  <>
+                    <span className="flex-1 whitespace-nowrap overflow-hidden">{item.label}</span>
+                    {showBadge && (
+                      <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
+                        {item.badge! > 99 ? '99+' : item.badge}
+                      </span>
+                    )}
+                  </>
                 )}
-                {!sidebarCollapsed && item.badge && (
-                  <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
-                    {item.badge}
-                  </span>
+                {/* Collapsed badge dot */}
+                {sidebarCollapsed && showBadge && (
+                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary" />
                 )}
               </Link>
             )
           })}
 
-          {/* Projects section */}
+          {/* Projects */}
           {!sidebarCollapsed && (
             <div className="mt-4 pt-3 border-t border-border">
               <div className="flex items-center justify-between mb-1.5 px-2">
                 <span className="text-[10px] font-medium tracking-widest uppercase text-muted-foreground/70">
                   Projetos
                 </span>
-                <Link
-                  href={ROUTES.newProject}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
+                <Link href={ROUTES.newProject} className="text-muted-foreground hover:text-foreground transition-colors">
                   <Plus size={12} />
                 </Link>
               </div>
@@ -136,10 +146,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     pathname.includes(project.id) && 'text-foreground bg-secondary',
                   )}
                 >
-                  <div
-                    className="h-2 w-2 flex-shrink-0 rounded-full"
-                    style={{ backgroundColor: project.color }}
-                  />
+                  <div className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: project.color }} />
                   <span className="truncate">{project.name}</span>
                 </Link>
               ))}
@@ -153,8 +160,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-[12px] text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
           >
-            {theme === 'dark' ? <Sun size={14} className="flex-shrink-0" /> : <Moon size={14} className="flex-shrink-0" />}
-            {!sidebarCollapsed && <span>Tema {theme === 'dark' ? 'claro' : 'escuro'}</span>}
+            {theme === 'dark'
+              ? <Sun size={14} className="flex-shrink-0" />
+              : <Moon size={14} className="flex-shrink-0" />}
+            {!sidebarCollapsed && <span>{theme === 'dark' ? 'Modo claro' : 'Modo escuro'}</span>}
           </button>
 
           <button
@@ -162,10 +171,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-[12px] text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
           >
             <LogOut size={14} className="flex-shrink-0" />
-            {!sidebarCollapsed && <span>Sair</span>}
+            {!sidebarCollapsed && <span>Terminar sessão</span>}
           </button>
 
-          {/* User */}
           <Link
             href={ROUTES.profile}
             className="flex items-center gap-2 rounded-md p-1.5 hover:bg-secondary transition-all"
@@ -176,17 +184,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {!sidebarCollapsed && (
               <div className="min-w-0 flex-1 overflow-hidden">
                 <p className="truncate text-[11px] font-medium text-foreground">
-                  {profile?.displayName ?? 'User'}
+                  {profile?.displayName ?? 'Utilizador'}
                 </p>
                 <p className="truncate text-[10px] text-muted-foreground">
-                  {profile?.email ?? ''}
+                  {sessionUser?.email ?? ''}
                 </p>
               </div>
             )}
           </Link>
         </div>
 
-        {/* Collapsed toggle */}
         {sidebarCollapsed && (
           <button
             onClick={toggleSidebar}
@@ -197,12 +204,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
       </motion.aside>
 
-      {/* ── Main ── */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {children}
-      </div>
-
-      {/* ── Command Palette ── */}
+      <div className="flex flex-1 flex-col overflow-hidden">{children}</div>
       <CommandPalette />
     </div>
   )
