@@ -17,6 +17,9 @@ export function useNotifications() {
   const { sessionUser } = useAuthStore()
   const store = useNotificationsStore()
   const loadedRef = useRef(false)
+   // Track the cleanup function so we only subscribe once across re-renders
+   const cleanupRef = useRef<(() => void) | null>(null)
+
 
   //* ── Load once per session *//
   const load = useCallback(async () => {
@@ -37,10 +40,11 @@ export function useNotifications() {
 
   //* ── Single realtime subscription per user session *//
   useEffect(() => {
-    if (!sessionUser || store.subscribed) return
-    store.setSubscribed(true)
+    if (!sessionUser) return
+    // Already subscribed — do nothing
+    if (cleanupRef.current) return
 
-    const unsubscribe = subscribeToNotifications(sessionUser.id, (newNotif) => {
+    const cleanup = subscribeToNotifications(sessionUser.id, (newNotif) => {
       store.addNotification(newNotif)
       toast(newNotif.title, {
         description: newNotif.body,
@@ -49,10 +53,13 @@ export function useNotifications() {
       })
     })
 
+    cleanupRef.current = cleanup
+
     return () => {
-      unsubscribe()
-      store.setSubscribed(false)
+      cleanup()
+      cleanupRef.current = null
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionUser?.id])
 
   //* ── Actions *//

@@ -179,7 +179,18 @@ export interface Database {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_notification: {
+        Args: {
+          p_user_id: string
+          p_type: string
+          p_title: string
+          p_body: string
+          p_task_id?: string | null
+          p_project_id?: string | null
+          p_actor_id?: string | null
+        }
+        Returns: void
+      }
     }
     Enums: {
       [_ in never]: never

@@ -1,6 +1,6 @@
 # Flow — Project Management 
 
-> A project management application built with Next.js, TypeScript, Firebase.
+> A project management application built with Next.js, TypeScript, Supabase.
 
 ---
 
@@ -8,7 +8,7 @@
 
 - **🎨 Premium UI** — Dark-first design inspired by Linear, Vercel Dashboard, and Notion
 - **📋 Kanban Board** — Smooth drag-and-drop with @dnd-kit, real-time column reordering
-- **🔐 Authentication** — Email/password + Google Sign-In via Firebase Auth
+- **🔐 Authentication** — Email/password + Google Sign-In via Supabase
 - **🔥 Firestore** — Real-time database with offline persistence
 - **🌙 Dark/Light Mode** — Smooth transitions, persisted preference
 - **⌨️ Command Palette** — `⌘K` search and navigation (Linear-style)
@@ -32,7 +32,7 @@
 | Drag & Drop | @dnd-kit/core + sortable |
 | State | Zustand (devtools + persist) |
 | Forms | React Hook Form + Zod |
-| Backend | Firebase Auth + Firestore + Storage |
+| Backend | Supabase |
 | Toasts | Sonner |
 | Icons | Lucide React |
 | Testing | Vitest + React Testing Library |
@@ -50,32 +50,17 @@ cd flow
 npm install
 ```
 
-### 2. Configure Firebase
+### 2. Configure Supabase
 
-Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com), then:
+Create a Supabase project at [https://supabase.com/](https://supabase.com/), then:
 
 ```bash
 cp .env.example .env.local
 ```
 
-Fill in your Firebase credentials in `.env.local`.
+Fill in your Supabase credentials in `.env.local`.
 
-Enable in Firebase Console:
-- **Authentication** → Email/Password + Google
-- **Firestore Database** → Start in production mode
-- **Storage** → Default bucket
-
-### 3. Set up Firestore indexes
-
-Deploy security rules:
-
-```bash
-npm install -g firebase-tools
-firebase login
-firebase deploy --only firestore:rules,storage:rules
-```
-
-### 4. Run development server
+### 3. Run development server
 
 ```bash
 npm run dev
@@ -90,7 +75,7 @@ Open [http://localhost:3000](http://localhost:3000).
 - **Feature-driven architecture** — each feature is self-contained with components, hooks, and schemas
 - **Optimistic UI** — store updated immediately on interaction, Firebase synced async
 - **No prop drilling** — Zustand stores + custom hooks at feature level
-- **Singleton Firebase** — prevents re-initialization in Next.js HMR
+- **Singleton Supabase** — prevents re-initialization in Next.js HMR
 - **Strict TypeScript** — no `any`, full type coverage
 
 ---
@@ -113,43 +98,6 @@ Test coverage includes:
 - ✅ Auth form schemas (Zod validation)
 - ✅ Zustand stores (task CRUD, kanban moves, filters, UI state)
 - ✅ UI components (PriorityBadge, Avatar, AvatarGroup)
-
----
-
-## 🔒 Firestore Security Rules
-
-```js
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Users can read/write their own profile
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth.uid == userId;
-    }
-
-    // Projects: members can read, owner can delete
-    match /projects/{projectId} {
-      allow read: if request.auth.uid in resource.data.memberIds;
-      allow create: if request.auth != null;
-      allow update: if request.auth.uid in resource.data.memberIds;
-      allow delete: if request.auth.uid == resource.data.ownerId;
-    }
-
-    // Tasks: project members can CRUD
-    match /tasks/{taskId} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Comments: authenticated users can read; author can edit/delete
-    match /comments/{commentId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth.uid == resource.data.authorId;
-    }
-  }
-}
-```
 
 ---
 

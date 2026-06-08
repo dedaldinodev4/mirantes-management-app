@@ -2,6 +2,10 @@ import { supabase } from './client'
 import type { AppNotification, NotificationType } from '@/types'
 import type { TablesInsert } from './database.types'
 
+// ── Singleton channel — garantia de canal único por sessão ────────────────────
+let activeChannel: ReturnType<typeof supabase.channel> | null = null
+let activeUserId: string | null = null
+
 //* ── Row mapper *//
 function rowToNotification(row: {
   id: string
@@ -90,20 +94,20 @@ export async function deleteAllNotifications(userId: string): Promise<void> {
 }
 
 //* ── Create notification (internal helper) *//
+// Uses service role via RPC to bypass RLS — see schema.sql for the function
 export async function createNotification(
   payload: Omit<AppNotification, 'id' | 'createdAt'>,
 ): Promise<void> {
-  const insert: TablesInsert<'notifications'> = {
-    user_id: payload.userId,
-    type: payload.type,
-    title: payload.title,
-    body: payload.body,
-    read: false,
-    task_id: payload.taskId ?? null,
-    project_id: payload.projectId ?? null,
-    actor_id: payload.actorId ?? null,
-  }
-  const { error } = await supabase.from('notifications').insert(insert)
+  // Call a Postgres function that runs with SECURITY DEFINER (bypasses RLS)
+  const { error } = await supabase.rpc('create_notification', {
+    p_user_id:   payload.userId,
+    p_type:      payload.type,
+    p_title:     payload.title,
+    p_body:      payload.body,
+    p_task_id:   payload.taskId ?? null,
+    p_project_id:payload.projectId ?? null,
+    p_actor_id:  payload.actorId ?? null,
+  })
   if (error) console.warn('createNotification error:', error.message)
 }
 
@@ -120,28 +124,42 @@ export async function notifyProjectMembers(params: {
   const targets = params.memberIds.filter((id) => id !== params.actorId)
   if (!targets.length) return
 
-  const inserts: TablesInsert<'notifications'>[] = targets.map((userId) => ({
-    user_id: userId,
-    type: params.type,
-    title: params.title,
-    body: params.body,
-    read: false,
-    task_id: params.taskId ?? null,
-    project_id: params.projectId ?? null,
-    actor_id: params.actorId,
-  }))
-
-  const { error } = await supabase.from('notifications').insert(inserts)
-  if (error) console.warn('notifyProjectMembers error:', error.message)
+  // Call for each target (RPC handles RLS bypass)
+  await Promise.allSettled(
+    targets.map((userId) =>
+      createNotification({
+        userId,
+        type: params.type,
+        title: params.title,
+        body: params.body,
+        read: false,
+        taskId: params.taskId ?? null,
+        projectId: params.projectId ?? null,
+        actorId: params.actorId,
+      }),
+    ),
+  )
 }
 
 //* ── Subscribe to realtime notifications *//
 export function subscribeToNotifications(
   userId: string,
   onNew: (notification: AppNotification) => void,
-) {
+): () => void {
+  // Se já existe canal activo para este utilizador, não criar outro
+  if (activeChannel && activeUserId === userId) {
+    return () => {} // cleanup vazio — o canal é gerido globalmente
+  }
+
+  // Limpar canal anterior se existia para outro utilizador
+  if (activeChannel) {
+    supabase.removeChannel(activeChannel)
+    activeChannel = null
+    activeUserId = null
+  }
+
   const channel = supabase
-    .channel(`notifications:${userId}`)
+    .channel(`notifications-${userId}`)
     .on(
       'postgres_changes',
       {
@@ -151,10 +169,19 @@ export function subscribeToNotifications(
         filter: `user_id=eq.${userId}`,
       },
       (payload) => {
-        onNew(rowToNotification(payload.new as any))
+        onNew(rowToNotification(payload.new as Parameters<typeof rowToNotification>[0]))
       },
     )
     .subscribe()
 
-  return () => { supabase.removeChannel(channel) }
+  activeChannel = channel
+  activeUserId = userId
+
+  return () => {
+    if (activeChannel === channel) {
+      supabase.removeChannel(channel)
+      activeChannel = null
+      activeUserId = null
+    }
+  }
 }
